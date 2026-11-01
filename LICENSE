@@ -1,10 +1,20 @@
-Stormworks Engine Mapping
+DeltaLoader Native Mod SDK
 Copyright (C) 2026 DeltaV Modding
 
-This work - the mapping data, the tools, the native library, the mods, the
-launcher, the bindings and the documentation - is licensed under the
-Creative Commons Attribution-NonCommercial 4.0 International Public License
-(CC BY-NC 4.0).
+This work - the native mod SDK: the headers under include/sw/ (including the
+generated tables of function addresses, class layouts and constants), the
+sources under src/, the example mod and the build script - is licensed under
+the Creative Commons Attribution-NonCommercial 4.0 International Public
+License (CC BY-NC 4.0).
+
+What this license does not cover:
+
+  - Stormworks: Build and Rescue, its code, its assets and its name belong to
+    their owners. This repository contains none of them; the tables hold only
+    our own observations (names, addresses, sizes, offsets).
+  - The DeltaLoader injector, the DeltaLauncher and the mod website are
+    separate works and are not part of this repository.
+  - Mods made by other people with this SDK belong to their authors.
 
 You are free to:
 
