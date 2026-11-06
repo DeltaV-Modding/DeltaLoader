@@ -1,3 +1,58 @@
+// render.hpp - the graphics engine of the game: where a frame ends, which OpenGL calls it
+// uses, and where the post-processing sits. A base for upscalers and render mods.
+//
+// What is proven (REPORT 3.111; static):
+//
+//  * The game renders with OpenGL 3+ through a statically linked GLFW (3.3 style). The window
+//    context has a table of function pointers: GLFW's swapBuffers is 0x90740 (it ends in
+//    SwapBuffers(window + 0x270)) and makeCurrent is 0x906c0; the table is filled by 0x90f90
+//    at window + 0x240.. . The swap is the ONE place where a frame ends.
+//  * All OpenGL functions beyond 1.1 are loaded by one stub each (2,591 names); the pointer
+//    is kept in a slot. gl_function() returns what the game loaded. 59 of them are used by
+//    the engine; the 43 functions of OpenGL 1.1 come through the import table of OPENGL32.dll.
+//  * The renderer object (constructor 0x6d16c0) holds 80 shader objects at fixed offsets.
+//    The frame function 0x6d4de0 (36 KB) runs, in the order of its code: the depth downsample
+//    and SSAO, the scene, then temporal AA (shader temporal_aa), motion blur, tonemap and
+//    FXAA. The engine already has what a temporal upscaler needs: a velocity texture
+//    (texture_velocity), the depth, the colour of the last frame and a per-frame offset
+//    (rand_offset, the jitter) - see shader_inputs in the mapping.
+//
+// THE PIPELINE (REPORT 3.113). The renderer is deferred. One view ("pipeline", 0x66e3a0 builds it)
+// owns these targets: [0] the G-buffer (RGBA16F, RGBA8, RG16F = the VELOCITY, depth/stencil),
+// [1] the lit scene colour (the `light` shader composes the G-buffer into it), [2] the history
+// of the last frame, [3] the output of the anti-aliasing, then SSAO, bloom, and small ones. The
+// anti-aliasing mode is a field of the pipeline (1 = FXAA, 2 = temporal AA). In mode 2 the pass
+// 0x68fde0 reads [1] (colour), [0] attachment 2 (velocity) and [0] depth, the history [2] and
+// writes [3]; the tonemap then reads [3] and DRAWS TO THE SCREEN (framebuffer 0) at the window
+// size. There is no separate final blit. An upscaler therefore goes between the scene colour
+// and the tonemap: read upscaler_inputs(), write `output_texture`. upscaler_inputs() delivers
+// exactly the OpenGL ids a temporal upscaler needs. The jitter is NOT in the engine:
+// `rand_offset` of the TAA is two CRT rand() values (noise for the filter), the projection
+// is not jittered; a temporal upscaler has to add its own.
+//
+//   #include "sw/render.hpp"
+//
+//   sw::render::watch();                                 // once, in sw_mod_start
+//   sw::render::on_frame_end(my_overlay, nullptr);       // runs on the render thread, GL context current
+//   void* fn = sw::render::gl_function("glBindFramebuffer");
+//
+// RENDER TARGETS (REPORT 3.112). Every framebuffer of the renderer is an object of the family
+// mm_resource_target_* (target, multiple, multisample, mipmapped). watch_targets() hooks the
+// functions that create and delete their OpenGL objects and keeps the list, so targets()
+// returns every live target with its OpenGL framebuffer, colour and depth texture ids, size
+// and format. The size of the main view is the client area of the window; there is no render
+// scale setting (graphics state + 0x8f0 / 0x8f4). The last use of the scene target is a blit
+// to framebuffer 0 (slot 4 of the class); that is the place for an upscaler to take over.
+//
+// ABOUT DLSS. NVIDIA's DLSS SDK has no OpenGL backend (Direct3D 11/12 and Vulkan only), and
+// this game is OpenGL. So there are three honest ways: (1) a spatial upscaler written as an
+// OpenGL shader in the place of the FXAA pass (FSR 1 style; needs nothing the engine lacks);
+// (2) a temporal upscaler (FSR 2 style) in the place of temporal_aa, which gets the velocity,
+// depth and jitter the engine already has; (3) DLSS itself through a shared texture between
+// OpenGL and Vulkan/D3D (GL_EXT_memory_object or WGL_NV_DX_interop2) - heavy, and the colour,
+// depth and velocity have to be copied out and the result back. This header gives the base
+// for all three: the frame end, the GL entry points, the pass order and the shader offsets.
+// It does not contain an upscaler.
 #pragma once
 
 #include "sw/generated_gl.hpp"
@@ -51,8 +106,19 @@ int gl_uses(const char* name);
 // frame callback (GL context current on this thread).
 bool viewport(int& x, int& y, int& width, int& height);
 
+// Your own shader uniform. The game sets only the uniforms its C++ shader classes know, but a uniform that you add to
+// a shader (a mod folder with the edited .glsl) keeps the value you give it: uniforms belong to the program object.
+// set_uniform() finds every program that declares `name` and writes the value into it (1 to 4 floats; or one int).
+// Call it from a frame callback (render thread, GL context current), for example once a frame or when the value changes.
+// Returns the number of programs that took the value (0: no program declares the name, or not watching).
+// The program that was bound is bound again afterwards. Not tried in a running game.
+int set_uniform(const char* name, const float* values, int count);
+int set_uniform_int(const char* name, int value);
+
+// ---- render targets and the size of the view --------------------------------------------------
 enum class TargetKind { target, multiple, multisample, mipmapped };
 
+// The format enum the renderer uses (REPORT 3.112) and what it is in OpenGL.
 enum class TargetFormat : int {
     none = 0,
     depth24 = 1,           // GL_DEPTH_COMPONENT24
@@ -110,6 +176,7 @@ bool framebuffer_size(int& width, int& height);
 bool window_size(int& width, int& height);
 float aspect();
 
+// ---- the pipeline of a view and the inputs of an upscaler ---------------------------------------
 // The members of the pipeline object, by index (offset = 8 * index): each one points at a target.
 enum class PipelineSlot : int {
     gbuffer = 0,        // mm_resource_target_multiple: RGBA16F, RGBA8, RG16F (velocity), depth/stencil
@@ -169,6 +236,7 @@ bool upscaler_inputs(UpscalerInputs& out);
 // the renderer object, or 0 when there is none.
 std::uint32_t renderer_shader_offset(const char* shader);
 
+// ---- addresses (RVA, stormworks64.exe 1.15.25) -------------------------------------------------
 inline constexpr std::uint32_t kRvaGlfwContextInit = 0x90f90;     // fills the function table of the context
 inline constexpr std::uint32_t kRvaGlfwMakeCurrent = 0x906c0;     // table + 0x240
 inline constexpr std::uint32_t kRvaGlfwSwapBuffers = 0x90740;     // table + 0x248; ends in SwapBuffers(dc)

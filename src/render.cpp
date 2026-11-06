@@ -312,7 +312,64 @@ bool viewport(int& x, int& y, int& width, int& height) {
     return width > 0 && height > 0;
 }
 
+namespace {
+// calls fn(program, location) for every program that declares the uniform; the bound program is restored
+template <class F>
+int for_each_uniform(const char* name, F&& fn) {
+    using GetIntegerv = void (*)(unsigned, int*);
+    using IsProgram = unsigned char (*)(unsigned);
+    using GetLoc = int (*)(unsigned, const char*);
+    using UseProgram = void (*)(unsigned);
+    auto get_integerv = reinterpret_cast<GetIntegerv>(gl_function("glGetIntegerv"));
+    auto is_program = reinterpret_cast<IsProgram>(gl_function("glIsProgram"));
+    auto get_loc = reinterpret_cast<GetLoc>(gl_function("glGetUniformLocation"));
+    auto use_program = reinterpret_cast<UseProgram>(gl_function("glUseProgram"));
+    if (!g_watching || !name || !get_integerv || !is_program || !get_loc || !use_program) return 0;
+    int previous = 0;
+    get_integerv(0x8B8D /* GL_CURRENT_PROGRAM */, &previous);
+    int taken = 0;
+    for (unsigned program = 1; program <= 512; ++program) {
+        if (!is_program(program)) continue;
+        const int location = get_loc(program, name);
+        if (location < 0) continue;
+        use_program(program);
+        fn(location);
+        ++taken;
+    }
+    use_program(static_cast<unsigned>(previous));
+    return taken;
+}
+}  // namespace
+
+int set_uniform(const char* name, const float* values, int count) {
+    if (!values || count < 1 || count > 4) return 0;
+    using U1 = void (*)(int, float);
+    using U2 = void (*)(int, float, float);
+    using U3 = void (*)(int, float, float, float);
+    using U4 = void (*)(int, float, float, float, float);
+    void* fn = gl_function(count == 1 ? "glUniform1f" : count == 2 ? "glUniform2f" : count == 3 ? "glUniform3f" : "glUniform4f");
+    if (!fn) return 0;
+    return for_each_uniform(name, [&](int location) {
+        switch (count) {
+            case 1: reinterpret_cast<U1>(fn)(location, values[0]); break;
+            case 2: reinterpret_cast<U2>(fn)(location, values[0], values[1]); break;
+            case 3: reinterpret_cast<U3>(fn)(location, values[0], values[1], values[2]); break;
+            default: reinterpret_cast<U4>(fn)(location, values[0], values[1], values[2], values[3]); break;
+        }
+    });
+}
+
+int set_uniform_int(const char* name, int value) {
+    using U = void (*)(int, int);
+    void* fn = gl_function("glUniform1i");
+    if (!fn) return 0;
+    return for_each_uniform(name, [&](int location) { reinterpret_cast<U>(fn)(location, value); });
+}
+
 #else
+
+int set_uniform(const char*, const float*, int) { return 0; }
+int set_uniform_int(const char*, int) { return 0; }
 
 bool watch() { return false; }
 bool read_target(std::uintptr_t, TargetInfo&) { return false; }
