@@ -254,3 +254,6 @@ tr:last-child td { border-bottom: 0; }
 .links { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
 .linkrow { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--text); font-weight: 500; }
 .linkrow span { color: var(--muted); transition: transform .15s, color .15s; } .linkrow:hover span { color: var(--acc); transform: translateX(3px); }
+
+.home .wrap.split { padding-block: 72px; }
+.home .band .wrap.split { padding-block: 72px; }
