@@ -2,6 +2,10 @@
 
 Welcome! This is the source code that allows you to build your own mods for the DeltaLoader! Most of this was written by Malionaro (Basically everything) and the example mod was written by Shayans.
 
+## Documentation
+
+Full documentation (lifecycle, hooks, UI, API reference): https://deltav-modding.github.io/DeltaLoader/ (source: `docs/index.html`).
+
 ## Requirements
 
 - Windows x64
