@@ -41,7 +41,7 @@ kbd { font: 11px var(--mono); background: var(--s2); border: 1px solid var(--lin
 .topbar { position: sticky; top: 0; z-index: 40; height: var(--top); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
 .topbar-in { height: 100%; max-width: 1500px; margin: 0 auto; padding: 0 20px; display: flex; align-items: center; gap: 18px; }
 .brand { display: flex; align-items: center; gap: 8px; color: var(--text); text-decoration: none; font: 700 18px var(--head); letter-spacing: -.01em; }
-.brand svg { color: var(--acc); }
+.brand img { width: 28px; height: 28px; border-radius: 6px; display: block; }
 .brand em { font: 600 11px var(--mono); font-style: normal; color: var(--acc); background: var(--acc-soft); padding: 2px 7px; border-radius: 99px; }
 .topnav { display: flex; gap: 2px; margin-left: 8px; }
 .topnav a { color: var(--muted); text-decoration: none; padding: 6px 11px; border-radius: 7px; font-size: 14px; font-weight: 500; transition: background .15s, color .15s; }
