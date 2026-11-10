@@ -1279,6 +1279,10 @@ footer {
       <div class="navlist-inner">
         <a href="#referenz" data-icon="referenz"><span class="ico" aria-hidden="true"></span><span class="lbl">API reference</span></a>
         <a href="#launcher" data-icon="webseite"><span class="ico" aria-hidden="true"></span><span class="lbl">The launcher</span></a>
+        <a href="#sdk-layout" data-icon="erstes-mod"><span class="ico" aria-hidden="true"></span><span class="lbl">SDK layout</span></a>
+        <a href="#recipes" data-icon="erstes-mod"><span class="ico" aria-hidden="true"></span><span class="lbl">Recipes</span></a>
+        <a href="#headers" data-icon="referenz"><span class="ico" aria-hidden="true"></span><span class="lbl">Header reference</span></a>
+        <a href="#generated" data-icon="referenz"><span class="ico" aria-hidden="true"></span><span class="lbl">Generated tables</span></a>
       </div>
     </div>
     <div class="grp">
@@ -1810,6 +1814,3319 @@ s.size = length;                     // length without the null byte</pre>
       <div class="note">Shader files are read at game start, so a shader mod needs the overlay start, not the virtual one.</div>
     </section>
 
+    <section id="sdk-layout">
+      <h2>SDK layout and build system</h2>
+      <p>The public repository contains everything needed to build a mod DLL. There is no game code and no asset in it.</p>
+      <table>
+        <tr><th>Path</th><th>What it is</th></tr>
+        <tr><td><code>include/sw/</code></td><td>The headers you include. <code>sw/mod.hpp</code> is the entry point; <code>sw/api.hpp</code> includes the friendly headers.
+          <code>generated_*.hpp</code> are tables made from the mapping and must not be edited.</td></tr>
+        <tr><td><code>src/</code></td><td>The implementation of the SDK (36 files) and the example mod <code>src/example_mod.cpp</code>.</td></tr>
+        <tr><td><code>CMakeLists.txt</code></td><td>Builds the static libraries <code>swbridge</code> (the bridge) and <code>swmodkit</code> (the mod framework) and defines <code>sw_add_mod()</code>.</td></tr>
+        <tr><td><code>build_mod.ps1</code></td><td>Configures and builds with Visual Studio 2022 (x64). Parameters: <code>-Config</code> (default Release), <code>-Generator</code>.</td></tr>
+        <tr><td><code>build-mod/</code></td><td>Build output (created by the script): <code>build-mod/Release/&lt;name&gt;.dll</code>.</td></tr>
+      </table>
+      <h3>Adding your mod</h3>
+      <p>Each mod is one DLL. Register it in <code>CMakeLists.txt</code>; <code>sw_add_mod</code> links <code>swmodkit</code> for you, sets the static runtime
+      (<code>MultiThreaded</code>) and the compiler flags <code>/W4 /permissive- /utf-8</code>:</p>
+      <pre><code>sw_add_mod(my_mod src/my_mod.cpp)
+# several files:
+sw_add_mod(my_other_mod src/a.cpp src/b.cpp)</code></pre>
+      <p>The DLL file name is the target name (no <code>lib</code> prefix). Build with <code>powershell -ExecutionPolicy Bypass -File build_mod.ps1</code>
+      or by hand: <code>cmake -S . -B build-mod -G "Visual Studio 17 2022" -A x64</code> and <code>cmake --build build-mod --config Release</code>.</p>
+      <h3>Requirements and rules</h3>
+      <ul>
+        <li>Windows x64, CMake 3.20 or newer, Visual Studio 2022 with the C++ workload, C++17.</li>
+        <li>Only <code>stormworks64.exe</code> is supported. The 32-bit game no longer exists.</li>
+        <li>Every mod needs <code>SW_MOD("name")</code> once and the two functions <code>sw_mod_start()</code> and <code>sw_mod_stop()</code>.</li>
+        <li>Single-player only. Back up your save before testing.</li>
+      </ul>
+      <h3>The libraries in <code>CMakeLists.txt</code></h3>
+      <pre><code>cmake_minimum_required(VERSION 3.20)
+project(DeltaLoaderModSDK LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_library(swbridge STATIC
+    src/signature.cpp src/sha256.cpp src/pe_file.cpp src/process.cpp
+    src/runtime.cpp src/hook.cpp src/console.cpp src/instances.cpp
+    src/registry.cpp src/settings.cpp src/events.cpp src/api.cpp src/ui.cpp
+    src/game.cpp src/world.cpp src/tiles.cpp src/start_tiles.cpp
+    src/textures.cpp src/mesh.cpp src/camera.cpp src/physics.cpp
+    src/mapicons.cpp src/render.cpp src/network.cpp src/overlay.cpp src/vfs.cpp
+    src/audio.cpp src/game_state.cpp src/input.cpp src/weather.cpp
+    src/vehicle.cpp src/flags.cpp src/trees.cpp src/discord.cpp
+)
+target_include_directories(swbridge PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(swbridge PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+
+add_library(swmodkit STATIC src/mod.cpp)
+target_link_libraries(swmodkit PUBLIC swbridge)
+
+function(sw_add_mod name)
+    add_library(${name} SHARED ${ARGN})
+    target_link_libraries(${name} PRIVATE swmodkit)
+    set_target_properties(${name} PROPERTIES PREFIX "" OUTPUT_NAME "${name}")
+    if(MSVC)
+        target_compile_options(${name} PRIVATE /W4 /permissive- /utf-8)
+        set_property(TARGET ${name} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    endif()
+endfunction()
+
+if(MSVC)
+    foreach(target swbridge swmodkit)
+        target_compile_options(${target} PRIVATE /W4 /permissive- /utf-8)
+        set_property(TARGET ${target} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    endforeach()
+endif()
+
+# Add each mod as: sw_add_mod(my_mod path/to/mod.cpp [more_sources.cpp ...])
+sw_add_mod(delta_example src/example_mod.cpp)</code></pre>
+    </section>
+
+    <section id="recipes">
+      <h2>Recipes</h2>
+      <p>Short, complete patterns. Each one only uses calls that exist in the headers of this SDK (see the <a href="#headers">header reference</a> for all signatures).
+      Calls that talk to the game return <code>false</code> or <code>nullptr</code> when the game build does not match, so always check the result.</p>
+
+      <h3>1. The smallest mod</h3>
+      <pre><code>#include "sw/mod.hpp"
+
+SW_MOD("my_mod")
+
+void sw_mod_start() {
+    sw::mod::log("started");
+    while (sw::mod::sleep(1000)) {      // false as soon as the mod is unloaded
+        // work once a second
+    }
+}
+void sw_mod_stop() {}</code></pre>
+      <p><code>sw_mod_start()</code> runs on its own thread. A loop must check <code>sw::mod::sleep()</code> or <code>sw::mod::running()</code>, otherwise unloading waits for it.</p>
+
+      <h3>2. Hook a game function and count calls</h3>
+      <pre><code>#include "sw/mod.hpp"
+#include &lt;atomic&gt;
+
+SW_MOD("counter")
+static std::atomic&lt;int&gt; g_calls{0};
+
+static void on_call(void* self, void* user) {   // runs before the original code; keep it short
+    ++g_calls;
+}
+
+void sw_mod_start() {
+    std::string err;
+    auto status = sw::mod::rt().hook_api("server.getTime", on_call, nullptr, err);
+    if (status != sw::HookStatus::ok) {
+        sw::mod::log("hook failed: %s (%s)", sw::to_string(status), err.c_str());
+        return;
+    }
+    while (sw::mod::sleep(5000)) sw::mod::log("calls: %d", g_calls.load());
+}
+void sw_mod_stop() {}</code></pre>
+      <p><code>hook_api</code> takes a Lua API name from the mapping. Other entry points: <code>hook_ctor(class, ...)</code> for constructors, <code>hook_method(class, slot, ...)</code> for virtual methods,
+      <code>hook_rva(rva, ...)</code> for a known address. A callback reads integer arguments with <code>sw::Hook::arg(n)</code> and cannot change them. Hooks are removed when the mod unloads.</p>
+
+      <h3>3. Find living objects of a class</h3>
+      <pre><code>std::string err;
+sw::Instances::track("c_scene_ropes", err);                 // once, in sw_mod_start
+for (auto obj : sw::Instances::list("c_scene_ropes")) {      // later, any time
+    sw::mod::log("rope object at %p", (void*)obj);
+}</code></pre>
+
+      <h3>4. Weather and time</h3>
+      <pre><code>#include "sw/mod.hpp"
+#include "sw/weather.hpp"
+
+SW_MOD("storm")
+void sw_mod_start() {
+    if (!sw::weather::watch()) { sw::mod::log("weather: game does not match"); return; }
+    while (!sw::weather::ready() &amp;&amp; sw::mod::sleep(500)) {}   // waits until the environment object was seen
+    sw::weather::set_weather(0.8f, 0.9f, 0.7f);            // fog, rain, wind (local only)
+    sw::weather::TimeOfDay t;
+    if (sw::weather::time_of_day(t)) sw::mod::log("it is %02d:%02d", t.hour, t.minute);
+    while (sw::mod::sleep(1000)) {}
+}
+void sw_mod_stop() {}</code></pre>
+      <p>The writers change the local game state like the game's own handler; other players are not told. The sampler only uses the "current" values while the setting
+      <code>override_weather</code> is on.</p>
+
+      <h3>5. Draw or set a shader uniform each frame</h3>
+      <pre><code>#include "sw/mod.hpp"
+#include "sw/render.hpp"
+
+SW_MOD("uniform_demo")
+static void on_frame(void* window, void* user) {          // render thread, GL context current
+    float v[3] = {1.f, 0.5f, 0.f};
+    sw::render::set_uniform("my_color", v, 3);               // every program that declares my_color
+}
+void sw_mod_start() {
+    if (!sw::render::watch()) return;
+    sw::render::on_frame_end(on_frame, nullptr);
+    while (sw::mod::sleep(1000)) {}
+}
+void sw_mod_stop() { sw::render::remove_callbacks(); }</code></pre>
+      <p>A uniform belongs to a program object and keeps its value. Declare it in a shader of your own mod folder (<code>Graphics\shaders</code>, which needs the overlay start of the launcher);
+      the game only sets the uniforms its own shader classes know.</p>
+
+      <h3>6. Tiles and a start card (the SDK example)</h3>
+      <pre><code>/* Hello Reader! If you're reading this, it means that you are interested in our modding system! This is written by Shayans, 
+(Pretty much the only thing I did for the DeltaLoader, my main job was the launcher and the site). Oh and I also wrote the STEX better space code for Argon spawning.
+I'm pretty much at the beginners level of C++. This is why basically this entire repository was written by Malionaro.
+So let's just start!
+*/
+#include "sw/mod.hpp"
+#include "sw/tiles.hpp" // If you want custom tiles
+#include "sw/start_tiles.hpp"
+
+#include &lt;string&gt;
+using std::string;
+
+// Here we can define the name of our mod, this is especially interesting for the log.
+SW_MOD("delta_example")
+
+// If we want custom tiles, we should create a function that's called after the game is done setting the vanilla tiles:
+static void on_tiles_placed(const sw::tiles::EventInfo&amp; info, void* user) { // These parameters are wanted by EventCallback, but we don't need them
+    for (const sw::tiles::Cell&amp; cell : sw::tiles::cells()) { // So that our island doesn't spawn multiple times (I used to have a horrible fix for this)
+        if (cell.name == "data/tiles/argon_island.xml"){return;}
+    }
+
+    string error; // If there's an error, it's written inside of this string
+    if (!sw::tiles::place_random("argon_island.xml", 0, 0, 10, 15, error)) { // Second parameter: X-Center of where the tile radius is, Third: Y-Center of where the tile radius is, Fourth parameter: Minimum radius of where it can spawn
+        sw::mod::log("customtile was not placed: %s", error.c_str()); // You need the %s to properly display the error
+    }
+    /*
+    if (!sw::tiles::place("customtile.xml", 10, 10, error)) { // This would place a fixed tile at the coordinates 10.000; 10.000
+        sw::mod::log("customtile was not placed: %s", error.c_str());
+    }
+    */
+}
+// This function is called on the start of your mod
+void sw_mod_start() {
+    // This is a simple log output.
+    sw::mod::log("DeltaLoader mod loaded.");
+
+    if (!sw::tiles::watch()) { // watch() from tiles.hpp has to be called to setup the tile management
+        return;
+    }
+
+    if (!sw::start_tiles::watch()) { //Same thing goes for here, you need this to do this start "card" in the menu for a base
+        return;
+    }
+    string error; // Hope you didn't forget what this was
+    if (!sw::tiles::on(sw::tiles::Event::tiles_placed, &amp;on_tiles_placed, nullptr, error)) { // This listens for the event that the game placed all of it's own tiles and then calls on_tiles_placed, and we don't need a user here.
+        sw::mod::log("Something is wrong, can't listen for the tile placed event: %s", error.c_str()); // Because we love logging
+        return;
+    }
+
+    sw::start_tiles::Base customBase; // We need a base object
+    customBase.key = "argon_island"; // This grabs the tile xml and the map geometry, so set it to whatever your tile name is (without the file extension!)
+    customBase.title = "Running Out Of Ideas"; // This is the display name of the base in the menu
+    customBase.description = "Lorem Ipsum Dolor Sit Amet."; // This is the description of the base in the menu
+    string errorBase; // Again, to write any errors inside this string if there are any
+    if (!sw::start_tiles::add_base(customBase, errorBase)) {
+        sw::mod::log("Could not add the base to the start things: %s", errorBase.c_str());
+    }
+
+    // There are other things I could explain now but I'm tired and many of the other things (like flags, menu icons and stuff like that) are broken right now
+    // So you shouldn't use them anyway. (Except if you're a genius that's able to fix them)
+    
+    // But I will update this with future updates of the source code and this project in general.
+
+    // Oh, and don't forget to update CMakeLists.txt!
+}
+
+// Called when you stop the game
+void sw_mod_stop() {
+    // Do whatever you want here, most of the time it just doesn't matter.
+}</code></pre>
+      <p>The folder name of a tile is the name without the extension; <code>tiles::place_random(name, cx, cy, min_radius, max_radius, err)</code> picks a cell in a ring
+      around the centre. Never place a tile for a start card from a timer or after the world was built: wait for the <code>tiles_placed</code> event as the example does.</p>
+
+      <h3>7. Rules that prevent most crashes</h3>
+      <ul>
+        <li>Check every return value; a mismatching game build returns false/nullptr and nothing else happens.</li>
+        <li>Callbacks run on game threads. Keep them short; hand slow work to the mod thread.</li>
+        <li>Use the engine allocator for objects the game frees; never <code>malloc</code> them.</li>
+        <li>Never write game memory you cannot name. <code>write_bytes</code>/<code>write_rva</code> exist but are for single-player experiments.</li>
+        <li>After a game update mods stop on purpose until the SDK is updated.</li>
+      </ul>
+    </section>
+
+    <section id="headers">
+      <h2>Header reference</h2>
+      <p>Every hand-written header of the SDK with its comments. The comments in the headers say what is proven; unproven things are marked there. Open a header to read its declarations.</p>
+      <p class="toc-inline"><a href="#h-audio">audio.hpp</a> &middot; <a href="#h-camera">camera.hpp</a> &middot; <a href="#h-console">console.hpp</a> &middot; <a href="#h-discord">discord.hpp</a> &middot; <a href="#h-events">events.hpp</a> &middot; <a href="#h-flags">flags.hpp</a> &middot; <a href="#h-game">game.hpp</a> &middot; <a href="#h-game_state">game_state.hpp</a> &middot; <a href="#h-hook">hook.hpp</a> &middot; <a href="#h-input">input.hpp</a> &middot; <a href="#h-instances">instances.hpp</a> &middot; <a href="#h-mapicons">mapicons.hpp</a> &middot; <a href="#h-mesh">mesh.hpp</a> &middot; <a href="#h-mod">mod.hpp</a> &middot; <a href="#h-network">network.hpp</a> &middot; <a href="#h-obj">obj.hpp</a> &middot; <a href="#h-overlay">overlay.hpp</a> &middot; <a href="#h-physics">physics.hpp</a> &middot; <a href="#h-render">render.hpp</a> &middot; <a href="#h-runtime">runtime.hpp</a> &middot; <a href="#h-settings">settings.hpp</a> &middot; <a href="#h-signature">signature.hpp</a> &middot; <a href="#h-start_tiles">start_tiles.hpp</a> &middot; <a href="#h-textures">textures.hpp</a> &middot; <a href="#h-tiles">tiles.hpp</a> &middot; <a href="#h-trees">trees.hpp</a> &middot; <a href="#h-ui">ui.hpp</a> &middot; <a href="#h-vehicle">vehicle.hpp</a> &middot; <a href="#h-vfs">vfs.hpp</a> &middot; <a href="#h-views">views.hpp</a> &middot; <a href="#h-weather">weather.hpp</a> &middot; <a href="#h-world">world.hpp</a></p>
+      <h3 id="h-audio"><code>sw/audio.hpp</code></h3>
+      <p>OpenAL by name, the audio engine, a hook on playing a sound.</p>
+      <details><summary>Show the header (157 lines)</summary><pre><code>#include "sw/generated_audio.hpp"
+
+#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::audio {
+
+// The entry of the table for this name ("alSourcePlay", "alcOpenDevice"), or nullptr.
+const AlEntry* al_entry(const char* name);
+
+// The function pointer the game holds for this name (the import table entry of OpenAL64.dll), or
+// nullptr when the name is unknown or the runtime is not attached.
+void* al_function(const char* name);
+
+// How many places of the engine call this function (0 = imported but never used).
+int al_uses(const char* name);
+
+// Hooks al_engine_update (0x1ac120, remembers the engine object) and al_engine_play_sound (0x1ac300).
+// Checks the opcodes of both first. False if the game does not match or a hook fails.
+bool watch();
+
+// Removes both hooks and all callbacks.
+void unwatch();
+
+// An update was seen in the last second.
+bool ready();
+
+// The audio engine object, or nullptr before the first update.
+void* engine();
+
+// A sound is played on a pool source (the call of 0x1ac300, before it runs).
+struct PlayEvent {
+    void* engine;
+    std::uint32_t buffer;   // the AL buffer id of the sound (0 when the reference could not be read)
+    bool loop;              // the fourth argument (the gain is a float in xmm2 and is NOT readable by a hook)
+};
+using PlayCallback = void (*)(const PlayEvent&amp; event, void* user);
+
+// Adds a callback. False before watch(), or when the same callback/user pair is already there.
+// The callback runs on the thread of the engine: be fast, do not throw.
+bool on_play(PlayCallback callback, void* user);
+void remove_callbacks();
+
+// The number of calls of the play function seen since watch(), and of updates.
+std::uint64_t plays();
+std::uint64_t updates();
+
+inline constexpr int kPoolSources = 24;
+
+struct SourceInfo {
+    int index;                 // 0..23
+    std::uint32_t source;      // the ALuint of the source
+    std::uint32_t buffer;      // the ALuint of the buffer it plays, 0 if none
+    float gain;                // the base gain (before the master gain)
+    bool in_use;
+};
+
+// The 24 pool sources, read from the engine. Empty before the first update or when a read fails.
+std::vector&lt;SourceInfo&gt; sources();
+
+// The number of pool sources in use.
+int sources_in_use();
+
+struct ListenerPosition {
+    float x, y, z;
+};
+// The position the engine uses for its emitters (engine + 0x538), written by the frame function
+// right before alListener3f. False before the first update. The ORIENTATION is not stored: it is
+// only passed to alListenerfv.
+bool listener(ListenerPosition&amp; out);
+
+// The four group gains of the engine (all 1.0f after construction). False before the first update.
+struct GroupGains {
+    float pool, emitters, streams, group4;
+};
+bool group_gains(GroupGains&amp; out);
+
+enum class Mood : std::int32_t { None = 0, MainMenu = 1, Normal = 2, MissionMid = 3, MissionHigh = 4 };
+// The mood value (state + 0xa0) and the track kind that plays (state + 0x4c; 5 = nothing). False when
+// the state is not initialised (its first dword must be 60) or the value is out of range.
+bool music_mood(Mood&amp; mood, int* playing_kind = nullptr);
+// "none", "main_menu", "mood_normal", "mood_mission_mid", "mood_mission_high", or nullptr.
+const char* mood_name(int value);
+
+// The sound paths in the program ("audio/fx/wind_outdoor_medium.ogg"), 528 of them, and a search.
+std::size_t sound_count();
+const SoundPath* sound_at(std::size_t index);
+// The first path that contains `part` (case sensitive), or nullptr.
+const SoundPath* find_sound(const char* part);
+
+// The cache of a sound library (library + 0x2f70): every sound loaded by name so far.
+struct CachedSound {
+    std::string name;          // "audio/fx/...ogg"
+    std::uint32_t buffer;      // the AL buffer id, 0 if it could not be read
+};
+// `library` is a pointer to a sound library object: the first argument of 0x27e4b0 (hook it, or read
+// scene + 0x17e8 of the game scene). All reads are checked; empty on any mismatch.
+std::vector&lt;CachedSound&gt; library_cache(const void* library);
+// The AL buffer id loaded for this exact path, or 0.
+std::uint32_t library_buffer(const void* library, const char* path);
+
+inline constexpr std::uint32_t kRvaEngineInit = 0x1abbd0;        // (engine)
+inline constexpr std::uint32_t kRvaEngineShutdown = 0x1abf80;
+inline constexpr std::uint32_t kRvaEngineUpdate = 0x1ac120;      // (engine, ...) once per frame
+inline constexpr std::uint32_t kRvaEnginePlaySound = 0x1ac300;   // (engine, buffer_ref*, gain in xmm2, loop, out handle)
+inline constexpr std::uint32_t kRvaEngineMusicStart = 0x1ac4f0;
+inline constexpr std::uint32_t kRvaEngineEmitterCreate = 0x1ac6a0;
+inline constexpr std::uint32_t kRvaSourceStart = 0x1a9aa0;
+inline constexpr std::uint32_t kRvaBufferLoadFile = 0x1a9550;    // .ogg / .wav
+inline constexpr std::uint32_t kRvaBufferFromPcm16 = 0x1a9890;
+inline constexpr std::uint32_t kRvaBufferRefRelease = 0x1a9a10;
+inline constexpr std::uint32_t kRvaVoiceQueuePcm = 0x1aa090;     // called by the voice_message handler
+inline constexpr std::uint32_t kRvaVoiceSetGain = 0x1aa1b0;
+inline constexpr std::uint32_t kRvaEffectSlotCreate = 0x1aba70;
+inline constexpr std::uint32_t kRvaListenerUpdate = 0x7425a0;    // the only caller of alListener3f / alListenerfv
+inline constexpr std::uint32_t kRvaSoundLibraryRegisterAll = 0x27e980;
+inline constexpr std::uint32_t kRvaSoundLibraryLoad = 0x27e4b0;
+inline constexpr std::uint32_t kRvaSetAudioMoodCase = 0x8602cc;  // case of s2c 174 in the client switch 0x85f330
+inline constexpr std::size_t kOffOwnerEngine = 0x2c8;            // engine = owner + 0x2c8
+inline constexpr std::uint32_t kRvaMusicState = 0xd056e0;      // the global music state (made by 0x289090)
+inline constexpr std::uint32_t kRvaMusicMoodUpdate = 0x289280;   // the only reader of the mood
+inline constexpr std::uint32_t kRvaMusicSwitch = 0x2895e0;       // (music, platform, track kind, fade, flag) -&gt; 0x1ac4f0
+inline constexpr std::size_t kOffEngineEmitterGain = 0x3d8;
+inline constexpr std::size_t kOffEngineStreamGain = 0x420;
+inline constexpr std::size_t kOffEngineGroup4Gain = 0x478;
+inline constexpr std::size_t kOffEngineGroup4Sources = 0x480;
+inline constexpr std::size_t kOffLibraryCache = 0x2f70;          // ptr; +8 capacity, +0xc start, +0x10 count; entries 0x18
+inline constexpr std::size_t kOffMusicPlayingKind = 0x4c;
+inline constexpr std::size_t kOffMoodOwner = 0x138a0;            // [client + 0x138a0] + 0xa0 = the mood value
+inline constexpr std::size_t kOffMoodValue = 0xa0;
+
+inline constexpr std::size_t kOffEngineDevice = 0x0;
+inline constexpr std::size_t kOffEngineContext = 0x8;
+inline constexpr std::size_t kOffEngineMasterGain = 0x10;        // float, read through slot + 0x10
+inline constexpr std::size_t kOffEnginePool = 0x18;
+inline constexpr std::size_t kPoolSlotSize = 0x28;
+inline constexpr std::size_t kOffEngineEmitterManager = 0x3d8;
+inline constexpr std::size_t kOffEngineStreamManager = 0x420;
+inline constexpr std::size_t kOffEngineListenerPosition = 0x538;
+inline constexpr std::size_t kOffEngineLastUpdate = 0x548;
+inline constexpr std::size_t kOffEngineLock = 0x580;
+inline constexpr std::size_t kOffSlotSource = 0x0;
+inline constexpr std::size_t kOffSlotGain = 0x4;
+inline constexpr std::size_t kOffSlotBufferRef = 0x8;
+inline constexpr std::size_t kOffSlotMasterGain = 0x10;
+inline constexpr std::size_t kOffSlotHandle = 0x18;
+inline constexpr std::size_t kOffSlotInUse = 0x20;
+inline constexpr std::size_t kOffBufferId = 0x0;
+inline constexpr std::size_t kOffBufferSamples = 0x4;
+inline constexpr std::size_t kOffBufferFrequency = 0x8;
+inline constexpr std::size_t kOffBufferBytes = 0xc;
+inline constexpr std::size_t kOffBufferCreated = 0x10;
+inline constexpr std::size_t kBufferObjectSize = 0x14;
+
+}  // namespace sw::audio</code></pre></details>
+      <h3 id="h-camera"><code>sw/camera.hpp</code></h3>
+      <p>The editor camera and the view camera of a world.</p>
+      <details><summary>Show the header (293 lines)</summary><pre><code>// camera.hpp - the cameras of the game, the orbit mode of the vehicle editor and
+// the view camera of a world (the camera the player looks through).
+//
+// The editor part (REPORT 3.99): the classes, the texts of the camera buttons and
+// where the editor builds them; the callback that switches orbit and free mode was
+// not found.
+//
+// The view part (REPORT 3.156) was read in the bytes of 1.15.25 (build 26275574) and
+// carried to 1.15.26 by the strict fingerprints of anchors.tsv (same code, +0x30):
+//   * mm_camera_perspective (RTTI vtable 0xb02940) keeps its world transform as a
+//     double 4x4 at +0x08 (columns right, up, forward, position) and the vertical
+//     field of view in radians as a float at +0x278. Its slot 0 (0x194680) builds
+//     the view matrix from exactly these fields: forward = column 2, and the look-at
+//     helper 0x1783e0 negates it into the third row (the camera looks along +col 2).
+//   * The scene draw 0x7b01a0 (rcx = scene; `btIDebugDraw::ctor` in symbols.tsv, a
+//     wrong vtable label) passes scene + 0x1010 as the first camera to
+//     renderer_draw_frame (0x6d4de0, 6th argument; the 5th is the pipeline) and to the culling call before it;
+//     the frame function copies cam + 8 and cam + 0x278 into its own camera.
+// So a pose written into scene + 0x1010 at the entry of the scene draw is the pose
+// the frame is culled and drawn with. Not proven: who writes the camera between two
+// frames (set_view() keeps the game's own last pose and puts it back on release), and
+// nothing of this was run in the game.
+//
+//   #include "sw/camera.hpp"
+//
+//   sw::camera::watch_view();
+//   sw::camera::set_view(sw::camera::look_at({0, 20, 0}, {50, 5, 50}, 1.0f));
+//   sw::camera::release_view();
+
+#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+
+namespace sw::camera {
+
+// The mode of the camera of the vehicle editor.
+enum class Mode { orbit, free };
+
+// Hooks the tick of the camera shelf (0x617270) so that the shelf is known and a
+// requested mode can be applied on the thread of the game. False if the game does
+// not match or the hook fails.
+bool watch();
+
+// The shelf of the editor exists (it was ticked in the last moments).
+bool shelf_ready();
+
+// Selects the mode, as if the player clicked its button: the request is applied at
+// the next tick of the shelf by the game's own group function (0x24d2c0), which
+// switches the other toggle off. False before watch(). The shelf only exists while
+// the vehicle editor is open.
+bool set_mode(Mode mode);
+
+// The mode that is on now (the state of the "Orbit Mode" toggle). False if the
+// shelf is not there.
+bool mode(Mode&amp; out);
+
+// Classes of the cameras of the scene (RTTI, stormworks64.exe 1.15.25).
+inline constexpr std::uint32_t kVtableCamera = 0xb0c2f0;               // mm_camera
+inline constexpr std::uint32_t kVtableCameraPerspective = 0xb02940;    // mm_camera_perspective
+inline constexpr std::uint32_t kVtableCameraOrthographic = 0xb942e0;   // mm_camera_orthographic
+// mm_camera_orthographic_inside, c_scene_vehicle_component_camera (the camera
+// component of a vehicle) exist as classes; their vtables were not read.
+
+// The vehicle editor: a tool shelf with the camera settings. "Orbit Mode" turns
+// the camera around the vehicle, "Free Mode" moves it freely, "Reset Camera"
+// returns it (REPORT 3.99).
+inline constexpr std::uint32_t kVtableCameraToolshelf = 0xb492b0;      // camera_toolshelf
+inline constexpr std::uint32_t kRvaCameraToolshelfBuild = 0x617470;    // slot 1, 955 bytes
+inline constexpr std::uint32_t kRvaCameraToolshelfTick = 0x617270;     // slot 3, 178 bytes
+inline constexpr std::uint32_t kRvaToggleGroupSelect = 0x24d2c0;       // (group, unused, member)
+inline constexpr std::size_t kOffToolshelfGroup = 0x78;
+inline constexpr std::size_t kOffToggleMember = 0x100;                 // member object inside a toggle button
+inline constexpr std::size_t kSlotToggleIsOn = 1;                      // vtable slot of the member
+inline constexpr std::uint32_t kLocResetCamera = 0x4fe;
+inline constexpr std::uint32_t kLocOrbitMode = 0x4ff;
+inline constexpr std::uint32_t kLocFreeMode = 0x500;
+// The two toggles are in a group (0x24d2c0, REPORT 3.100): for every member except the
+// one that was clicked, if its slot 1 says it is on, its slot 0 is called (it is
+// switched off); then the clicked one is set to the opposite of its own state (slot
+// 1 returns it, slot 0 sets it). So exactly one of "Orbit Mode" and "Free Mode" is
+// on. The slide-in of the shelf is slot 3 (0x617270: it eases a position towards
+// 0 or the width). Which code reads the toggle to switch the camera was not found.
+// set_mode() calls the group function with the toggle's inner object (button + 0x100,
+// as 0x617470 does at its end): (group = shelf + 0x78, unused, member).
+// The shelf object: the toggle "Orbit Mode" at +0xa0 (index 0x14), "Free Mode" at
+// +0xa8 (index 0x15), the group of the two at +0x78 (index 0xf).
+inline constexpr std::size_t kOffToolshelfOrbitButton = 0xa0;
+inline constexpr std::size_t kOffToolshelfFreeButton = 0xa8;
+
+// Events between the game and the logic thread that concern a camera (RTTI names,
+// the vtables were not read).
+inline constexpr const char* kCameraEvents[] = {
+    "c_event_game_to_logic_set_camera_controller_status",
+    "c_event_logic_to_game_set_camera_orientation",
+    "c_event_logic_to_game_add_camera_shake",
+    "c_event_game_to_logic_toggle_cinematic_camera",
+    "c_event_game_to_logic_set_map_camera_data",
+    "c_event_logic_to_game_set_map_camera_transforms",
+    "c_event_game_to_logic_set_photo_mode_camera_parameters",
+    "c_event_logic_to_game_set_camera_to_photo_mode_ui",
+    "c_server_to_client_event_set_camera_position",
+};
+
+// ---------------------------------------------------------------------------
+// The view camera of a world (REPORT 3.156).
+
+struct Vec3 {
+    double x = 0, y = 0, z = 0;
+};
+
+// A pose of the view camera: where it is, where it looks, its up vector and its
+// vertical field of view in radians (0 = keep the field of view of the game).
+struct Pose {
+    Vec3 eye;
+    Vec3 forward{0, 0, 1};
+    Vec3 up{0, 1, 0};
+    float fov = 0.0f;
+};
+
+// The camera at eye that looks at target (world up = +y).
+Pose look_at(const Vec3&amp; eye, const Vec3&amp; target, float fov = 0.0f);
+
+// The double 4x4 that mm_camera_perspective keeps at +8, built from a pose:
+// columns right = normalize(up x forward), up = forward x right, forward, eye: det +1, the
+// handedness of the game's own view camera (REPORT 3.156e). The view hook also compares the sign
+// with the game's transform and negates column 0 if they differ, so the faces keep their winding.
+// False if forward is zero or parallel to up.
+bool transform_from_pose(const Pose&amp; pose, double out[16]);
+
+// The other way round (fov is left 0).
+Pose pose_from_transform(const double m[16]);
+
+// Blend of two poses: eye and fov linear, forward and up normalised linear.
+// t outside 0..1 is clamped.
+Pose blend(const Pose&amp; a, const Pose&amp; b, double t);
+
+// Hooks the scene draw (0x7b01a0) after checking its bytes. From then on the
+// camera at scene + 0x1010 is read every frame (view_game_pose) and, while a view is
+// set, overwritten before the frame is culled and drawn. False if the game does not
+// match or the hook fails.
+bool watch_view();
+
+// A frame was drawn in the last half second (a world is open).
+bool view_ready();
+
+// The pose the game itself gave the camera last (fov included). False before the
+// first frame.
+bool view_game_pose(Pose&amp; out);
+
+// From the next frame on the camera shows this pose (until release_view). A pose
+// with fov 0 keeps the game's field of view.
+void set_view(const Pose&amp; pose);
+
+// A function that gives the pose for every frame, on the thread of the game, at the
+// entry of the scene draw: (pose of the game, out) -&gt; true to override this frame.
+// Keep it short. Replaces set_view; nullptr removes it.
+using ViewProvider = bool (*)(const Pose&amp; game, Pose&amp; out, void* user);
+void set_view_provider(ViewProvider provider, void* user);
+
+// Gives the camera back to the game: the next frame shows the game's own pose.
+void release_view();
+
+// A view is set (set_view or a provider that returned true last frame).
+bool view_overridden();
+
+// Whether the frame's draw lists are culled from the story camera while a view is set (on by default).
+// The game's camera follows that same view, so a blend back to the player turns it off: otherwise the
+// pose of the game would be the story camera's and the blend would have nowhere to go.
+void set_view_culls(bool on);
+
+// What the view hooks saw (for a log when a shot does not show). watch_view() also hooks the entry of
+// renderer_draw_frame: when its 6th argument is the camera of the scene draw, the pose written at the
+// scene draw is checked there and written again if something changed it in between.
+struct ViewStats {
+    std::uint64_t scene_draws = 0;    // calls of the scene draw with a perspective camera at +0x1010
+    std::uint64_t renders = 0;        // calls of renderer_draw_frame
+    std::uint64_t renders_scene = 0;  // ... whose 6th argument was that camera
+    std::uint64_t written = 0;        // frames the pose was written at the scene draw
+    std::uint64_t intact = 0;         // ... and still there at the renderer
+    std::uint64_t rewritten = 0;      // ... changed in between and written again at the renderer
+    bool mirrored = false;            // the game's camera is mirrored (det &lt; 0); poses are written that way
+    std::uint64_t others_written = 0; // writes into the renderer's 7th and 8th camera (scene + 0x1510, + 0x1290)
+    std::uint64_t culling = 0;        // frames the three cameras got the pose and their matrices right after the controller
+    std::uint64_t tiles = 0;          // calls of the tile visibility whose centre was moved to the story camera
+    Vec3 tile_centre;                 // the centre the game gave the last of them (the player's view)
+    std::uint64_t frame_views = 0;    // logic ticks whose draw lists were culled from the story camera
+    Vec3 frame_eye;                   // the player's position in the logic's view at the last of them
+    Vec3 frame_player_fwd;            // ... the forward of that view (before writing)
+    Vec3 frame_event_fwd;             // ... the forward of the viewer's pose the camera event brought (logic + 0xa88)
+    Vec3 frame_event_eye;             // ... and its position (logic + 0xa70)
+    Vec3 frame_story_fwd;             // ... and the story camera's forward written there
+    std::uint64_t look_held = 0;      // controller updates that ran with the player's look set to the identity
+    Vec3 scene_eye;                   // where the camera was at the last scene draw (before writing)
+    Vec3 render_eye;                  // where the 6th argument's camera was at the last renderer entry
+    Vec3 render_eye7, render_eye8;    // ... and the 7th and 8th argument's cameras (before writing)
+    Vec3 origin;                      // the render origin at the last renderer entry (3 doubles at its 3rd argument)
+};
+ViewStats view_stats();
+
+inline constexpr std::uint32_t kRvaSceneDraw = 0x7b01a0;              // (scene, ...) per frame, calls renderer_draw_frame
+inline constexpr std::uint32_t kRvaCameraPerspectiveCompute = 0x194680; // slot 0 of mm_camera_perspective (1333 bytes)
+inline constexpr std::uint32_t kRvaRendererDrawFrame = 0x6d4de0;        // the camera is its 6th argument
+inline constexpr std::size_t kOffSceneViewCamera = 0x1010;              // the view camera inside the scene (an offset, swupdate:keep)
+inline constexpr std::size_t kOffCameraTransform = 0x08;                // double[16], column major
+inline constexpr std::size_t kOffCameraFov = 0x278;                     // float, radians, vertical
+// The bytes watch_view() checks before it hooks (and the API test checks in the file).
+// The first 15 bytes of the scene draw: mov rax,rsp; push rbp/rbx/rsi/rdi/r12..r15.
+inline constexpr std::uint8_t kSceneDrawPrologue[15] = {0x48, 0x8b, 0xc4, 0x55, 0x53, 0x56, 0x57, 0x41,
+                                                        0x54, 0x41, 0x55, 0x41, 0x56, 0x41, 0x57};
+// lea rdx,[r14+0x1010] (stored to [rsp+0x28]): the view camera as the 6th argument of renderer_draw_frame.
+inline constexpr std::size_t kSceneDrawCameraArgAt = 0x7d4;            // from the start of the scene draw
+inline constexpr std::uint8_t kSceneDrawCameraArg[7] = {0x49, 0x8d, 0x96, 0x10, 0x10, 0x00, 0x00};
+// lea rdx,[rdi+8] (copy of the transform) and movss xmm0,[rdi+0x278] (the fov) in renderer_draw_frame.
+inline constexpr std::size_t kFrameCopyTransformAt = 0x104;            // from the start of renderer_draw_frame
+inline constexpr std::uint8_t kFrameCopyTransform[4] = {0x48, 0x8d, 0x57, 0x08};
+inline constexpr std::size_t kFrameCopyFovAt = 0x17f;
+// The camera controller (REPORT 3.156f): an object at scene + 0xce8 owns the three cameras
+// (+0x328 = scene + 0x1010, +0x828 = scene + 0x1510, +0x5a8 = scene + 0x1290). Its update 0x71a170
+// (called by the scene draw) writes each transform from the player and calls 0x719f50, which adds the
+// head offsets, sets the fov from controller + 0x1c4 and tail-calls the camera's slot 0 (compute:
+// view, projection and the matrices the culling reads) with the aspect at graphics state + 0x900.
+// The scene draw calls 0x71be90 on the controller next: hooked there, the pose and its matrices are in
+// place before anything is culled or drawn.
+inline constexpr std::uint32_t kRvaCameraControllerUpdate = 0x71a170;
+inline constexpr std::uint32_t kRvaAfterControllerUpdate = 0x71be90;
+inline constexpr std::uint32_t kRvaControllerCameraFinish = 0x719f50;
+inline constexpr std::size_t kOffSceneController = 0xce8;
+inline constexpr std::size_t kOffControllerCamera[3] = {0x328, 0x828, 0x5a8};
+inline constexpr std::size_t kOffGraphicsAspect = 0x900;
+// lea rcx,[r14+0xce8]; call 0x71be90 in the scene draw
+inline constexpr std::size_t kSceneDrawAfterControllerAt = 0x2a9;
+inline constexpr std::uint8_t kSceneDrawAfterController[8] = {0x49, 0x8d, 0x8e, 0xe8, 0x0c, 0x00, 0x00, 0xe8};
+// The player's look in the controller (REPORT 3.156k): 0x71b630 (called right before the update) adds the
+// mouse to the yaw at +0x2a0 and the pitch at +0x2a4 and builds the 3x3 at +0x2dc; the update turns them
+// into a rotation (yaw x pitch x roll +0x2c0, or the seat yaw +0x2c4 when +0x1a6 is set, then x the 3x3)
+// and puts it behind the frame's view: camera = view x look. Something culls from that camera before
+// 0x71be90, so while a shot holds the look is the identity during the update and put back at 0x71be90.
+inline constexpr std::size_t kOffControllerYaw = 0x2a0;
+inline constexpr std::size_t kOffControllerPitch = 0x2a4;
+inline constexpr std::size_t kOffControllerRoll = 0x2c0;
+inline constexpr std::size_t kOffControllerSeatYaw = 0x2c4;
+inline constexpr std::size_t kOffControllerLook = 0x2dc;        // float 3x3
+// movss xmm6,[rdi+X] in the update (yaw, pitch, roll, seat yaw) and lea r8,[rdi+0x2dc]
+inline constexpr std::size_t kControllerLookReadAt[5] = {0x1c6, 0x1ed, 0x250, 0x103, 0x317};
+inline constexpr std::uint8_t kControllerLookRead[5][8] = {{0xf3, 0x0f, 0x10, 0xb7, 0xa0, 0x02, 0x00, 0x00},
+                                                           {0xf3, 0x0f, 0x10, 0xb7, 0xa4, 0x02, 0x00, 0x00},
+                                                           {0xf3, 0x0f, 0x10, 0xb7, 0xc0, 0x02, 0x00, 0x00},
+                                                           {0xf3, 0x0f, 0x10, 0xb7, 0xc4, 0x02, 0x00, 0x00},
+                                                           {0x4c, 0x8d, 0x87, 0xdc, 0x02, 0x00, 0x00, 0x00}};
+inline constexpr std::size_t kControllerLookReadLen[5] = {8, 8, 8, 8, 7};
+// lea r8,[rdi+0x328 / 0x828 / 0x5a8] before each call of 0x719f50 in the controller update
+inline constexpr std::size_t kControllerCameraAt[3] = {0xb37, 0xba7, 0xc17};
+inline constexpr std::uint8_t kControllerCamera[3][7] = {{0x4c, 0x8d, 0x87, 0x28, 0x03, 0x00, 0x00},
+                                                         {0x4c, 0x8d, 0x87, 0x28, 0x08, 0x00, 0x00},
+                                                         {0x4c, 0x8d, 0x87, 0xa8, 0x05, 0x00, 0x00}};
+// movss xmm1,[rdx+0x900] (the aspect) in 0x719f50
+inline constexpr std::size_t kCameraFinishAspectAt = 0x1f4;
+inline constexpr std::uint8_t kCameraFinishAspect[8] = {0xf3, 0x0f, 0x10, 0x8a, 0x00, 0x09, 0x00, 0x00};
+// The tile visibility (REPORT 3.156g): 0x579060 (tile level, const double centre[3], float radius, bool)
+// marks every cell within the radius of the centre visible (cell + 0x98) and the rest not; the logic
+// update calls it for both tile levels with the centre taken from the player's view (0x366650,
+// stored at logic + 0xac0). Hooked at its entry, the centre is moved to the story camera while a view is set.
+inline constexpr std::uint32_t kRvaTileVisibility = 0x579060;
+// mov rax,rsp; mov [rax+0x20],r9b ... movups xmm0,[rdx] (x, y) ... movsd xmm9,[rdx+0x10] (z)
+inline constexpr std::uint8_t kTileVisibilityPrologue[7] = {0x48, 0x8b, 0xc4, 0x44, 0x88, 0x48, 0x20};
+inline constexpr std::size_t kTileVisibilityCentreXAt = 0x11;   // swupdate:keep
+inline constexpr std::uint8_t kTileVisibilityCentreX[3] = {0x0f, 0x10, 0x02};
+inline constexpr std::size_t kTileVisibilityCentreZAt = 0x43;   // swupdate:keep
+inline constexpr std::uint8_t kTileVisibilityCentreZ[6] = {0xf2, 0x44, 0x0f, 0x10, 0x4a, 0x10};
+// The frame's draw lists (REPORT 3.156h): 0x6be1b0 is called by the logic once per tick (0x74cee2 in
+// the frame build 0x74c470) with the logic's view as its 5th argument (logic + 0xac0: the double 4x4
+// of the camera at +0, the one of the tick before at +0x80, the fov at +0x100) and the new frame
+// state as its 11th; it copies the view into the frame state (+0x5e8) and culls what the frame
+// draws - the terrain tiles among it - against it. Hooked at its entry, the view holds the story
+// camera while a shot holds.
+inline constexpr std::uint32_t kRvaFrameLists = 0x6be1b0;
+inline constexpr std::size_t kOffViewFov = 0x100;               // float in the logic's view (logic + 0xbc0)
+// The viewer's pose right in front of the view (logic + 0xa70, written by the game-to-logic camera event
+// that 0x71be90 builds from the controller's camera): double position[3], then a float 3x3 (columns
+// right / up / forward) at + 24. The draw lists get it as their 4th (position) and 3rd (rotation) argument.
+inline constexpr std::size_t kOffViewerPose = 0x50;             // the view minus this
+inline constexpr std::size_t kViewerPoseBytes = 60;
+// push rbp/rbx/rsi/rdi/r12..r15; lea rbp,[rsp-0x8838]
+inline constexpr std::uint8_t kFrameListsPrologue[21] = {0x40, 0x55, 0x53, 0x56, 0x57, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56,
+                                                         0x41, 0x57, 0x48, 0x8d, 0xac, 0x24, 0xc8, 0x77, 0xff, 0xff};
+// mov r12,[rbp+0x88a0]: the 5th argument (rbp = entry rsp - 0x8878)
+inline constexpr std::size_t kFrameListsViewArgAt = 0xaf;       // swupdate:keep
+inline constexpr std::uint8_t kFrameListsViewArg[7] = {0x4c, 0x8b, 0xa5, 0xa0, 0x88, 0x00, 0x00};
+// lea rcx,[r13+0x5e8]; mov rdx,r12; call: the view copied into the frame state
+inline constexpr std::size_t kFrameListsCopyAt = 0xf2;          // swupdate:keep
+inline constexpr std::uint8_t kFrameListsCopy[11] = {0x49, 0x8d, 0x8d, 0xe8, 0x05, 0x00, 0x00, 0x49, 0x8b, 0xd4, 0xe8};
+inline constexpr std::uint8_t kFrameCopyFov[8] = {0xf3, 0x0f, 0x10, 0x87, 0x78, 0x02, 0x00, 0x00};
+
+}  // namespace sw::camera</code></pre></details>
+      <h3 id="h-console"><code>sw/console.hpp</code></h3>
+      <p>The console window and the log file.</p>
+      <details><summary>Show the header (43 lines)</summary><pre><code>#include &lt;string&gt;
+#include &lt;string_view&gt;
+
+
+namespace sw::console {
+
+
+// Opens the console window (or uses an already existing one, for example
+// that of another mod). Returns false if Windows does not provide one; the
+// log file works anyway.
+
+bool open(std::string_view title = "Stormworks Mods");
+
+
+// Writes text unchanged (UTF-8) - into the window, if open, and into the log file.
+
+void write(std::string_view utf8);
+
+
+// Live display: redraws the text from the top left and clears the rest of
+// the window - for dashboards that update every second.
+// Goes ONLY into the window, not into the log file (otherwise it would
+// overflow). Without an open window nothing happens.
+
+void draw(std::string_view utf8);
+
+
+// printf-like output with a timestamp and the mod name in front.
+
+void print(const char* format, ...);
+
+
+// Prefix for print(), normally the mod name (set by sw/mod.hpp).
+
+void set_prefix(std::string_view prefix);
+
+
+// Path of the log file (%TEMP%\stormworks_mods.log).
+
+std::string log_path();
+
+
+}  // namespace sw::console</code></pre></details>
+      <h3 id="h-discord"><code>sw/discord.hpp</code></h3>
+      <p>Discord Rich Presence through the local pipe.</p>
+      <details><summary>Show the header (43 lines)</summary><pre><code>#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::discord {
+
+struct Button {
+    std::string label;   // at most 32 characters
+    std::string url;     // http or https
+};
+
+struct Config {
+    std::string client_id;                 // the Application ID of the Discord application
+    std::string large_image, large_text;   // names of art assets of the application
+    std::string small_image, small_text;
+    std::vector&lt;Button&gt; buttons;           // at most two are sent
+    std::string pipe_prefix = "\\\\.\\pipe\\discord-ipc-";   // + 0 .. pipes-1
+    int pipes = 10;
+    unsigned period_ms = 1000;             // how often the provider is asked
+    unsigned retry_ms = 15000;             // how often a connection is tried while there is none
+};
+
+struct Presence {
+    std::string details, state;
+    std::int64_t start = 0;                // unix time of the start; 0 = none
+};
+
+// Called on the presence thread once per period. Return false to show nothing (the activity is cleared).
+using Provider = bool (*)(Presence&amp; out, void* user);
+
+// Starts the thread. False when the client id is empty, a button is unusable or it is running already.
+bool start(const Config&amp; config, Provider provider, void* user);
+// Clears the activity, closes the pipe, ends the thread. Harmless when it is not running.
+void stop();
+// Discord answered the handshake with READY and the pipe is open.
+bool connected();
+
+// The pieces, public for the tests.
+std::string json_escape(const std::string&amp; text);
+std::string activity_json(const Config&amp; config, const Presence&amp; presence);   // the object for "activity"
+bool valid_url(const std::string&amp; url);                                      // http:// or https://, no spaces or quotes
+
+}  // namespace sw::discord</code></pre></details>
+      <h3 id="h-events"><code>sw/events.hpp</code></h3>
+      <p>Game events by name.</p>
+      <details><summary>Show the header (34 lines)</summary><pre><code>#include "sw/hook.hpp"
+
+#include &lt;string&gt;
+#include &lt;string_view&gt;
+#include &lt;vector&gt;
+
+namespace sw::events {
+
+// Callback on the event.
+//   self = the first argument of the dispatcher (the Lua state)
+//   user = the pointer that was passed to on()
+using EventCallback = void (*)(void* self, void* user);
+
+// Hooks an event. The name is the name of the callback of the game
+// ("onTick", "onPlayerJoin", "onCreate", ...). Several callbacks per
+// event are possible.
+HookStatus on(std::string_view name, EventCallback callback, void* user,
+              std::string&amp; error);
+
+// Removes one callback of an event again.
+bool off(std::string_view name, EventCallback callback, void* user,
+         std::string&amp; error);
+
+// The names of all known events.
+std::vector&lt;std::string&gt; names();
+
+// The names of the events that have a callback at the moment.
+std::vector&lt;std::string&gt; active();
+
+// Removes every callback of every event. The skeleton of the mod does
+// that anyway when the mod is unloaded (sw/mod.hpp).
+void clear();
+
+}  // namespace sw::events</code></pre></details>
+      <h3 id="h-flags"><code>sw/flags.hpp</code></h3>
+      <p>Flag designs, new flags in the atlas.</p>
+      <details><summary>Show the header (97 lines)</summary><pre><code>#include "sw/obj.hpp"
+#include "sw/textures.hpp"
+
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::flags {
+
+inline constexpr std::uint32_t kRvaDesignTable = 0xcc3970;   // in .data
+inline constexpr int kDesignCount = 162;
+inline constexpr std::size_t kDesignStride = 20;             // category, loc id, x, y, z (int each)
+inline constexpr std::uint32_t kRvaDesignTableFill = 0x8ad30;  // writes the cells at the start
+inline constexpr std::uint32_t kRvaMenuBuild = 0x45f1b0;     // builds the menu of the designs
+inline constexpr std::uint32_t kRvaMenuCategory = 0x45f4b0;  // the category was changed
+inline constexpr std::uint32_t kRvaComponentCtor = 0x45e3f0;
+inline constexpr std::uint32_t kRvaLocTextGet = 0x20e550;    // (mm_string* out, int id): the text of a localisation id
+inline constexpr std::uint32_t kCustomLocBase = 0x7e000000;  // ids from here are answered with the names of custom flags
+inline constexpr std::size_t kMenuCapacity = 512;            // entries of the table made by show_in_menu
+inline constexpr std::uint32_t kMenuBuildSize = 755;         // 0x45f1b0
+inline constexpr std::uint32_t kMenuCategorySize = 553;      // 0x45f4b0
+inline constexpr std::size_t kOffComponentCellX = 0x258;
+inline constexpr std::size_t kOffComponentCellY = 0x25c;
+inline constexpr std::size_t kOffComponentCellZ = 0x260;
+
+// The categories of the table, in the order of the menu tabs.
+inline constexpr const char* kCategoryName[5] = {"colors", "nations", "pride", "community", "shipping"};
+
+// The cell of the atlas.
+inline constexpr int kCellWidth = 64;
+inline constexpr int kCellHeight = 32;
+inline constexpr int kAtlasColumns = 16;
+inline constexpr int kFirstUsedRow = 16;   // rows 0..15 are empty
+
+// The default file this header writes and the game is told to load. It is a NEW
+// file in rom/graphics; flags.txtr itself is never touched.
+inline constexpr const char* kCustomAtlasPath = "graphics/flags_custom.txtr";
+
+struct Design {
+    int index = 0;
+    int category = 0;
+    std::uint32_t loc_id = 0;   // the name in the localisation table
+    int cell_x = 0;
+    int cell_y = 0;
+    int cell_z = 0;
+};
+
+struct CustomFlag {
+    std::string name;
+    int cell_x = 0;
+    int cell_y = 0;
+};
+
+
+// The designs of the game, read from the running game (empty if it is not
+// attached). The names are in mapping/&lt;version&gt;/flags.tsv.
+std::vector&lt;Design&gt; designs();
+
+// Hooks the constructor of the flag component so that the flags of the world are
+// known. False if the game does not match or the hook fails.
+bool watch();
+
+// The flag components that exist (checked: the object still has the vtable of
+// the component).
+std::vector&lt;Obj&gt; components();
+
+bool get_cell(const Obj&amp; component, int&amp; cell_x, int&amp; cell_y);
+
+// Makes a component show another cell (also a free cell of the atlas).
+bool set_cell(const Obj&amp; component, int cell_x, int cell_y);
+
+// Puts a picture of exactly 64 x 32 pixels into the next free cell of the top
+// half of the atlas and writes graphics/flags_custom.txtr (the original atlas
+// plus every custom flag added so far). Refuses a picture of another size and
+// the case that no cell is free.
+bool add_flag(const std::string&amp; name, const gfx::Image&amp; picture, std::string&amp; error);
+
+bool use_flag(const std::string&amp; name, int cell_x, int cell_y, std::string&amp; error);
+
+std::vector&lt;CustomFlag&gt; custom_flags();
+
+// Tells the game to load graphics/flags_custom.txtr instead of graphics/flags.txtr.
+// Needs at least one registered flag. See the limits above.
+bool redirect_atlas(std::string&amp; error);
+
+// Here is the same one but newer (I'm keeping the old one for comatibility) but here you can give it a custom path.
+bool redirect_atlas(const std::string&amp; rom_relative_path, std::string&amp; error);
+
+bool show_in_menu(int category, std::string&amp; error);
+
+// The number of entries the menu reads now (162 until show_in_menu).
+int menu_entry_count();
+
+// Removes the custom flags from the list and deletes the file this header made.
+void clear();
+
+}  // namespace sw::flags</code></pre></details>
+      <h3 id="h-game"><code>sw/game.hpp</code></h3>
+      <p>Every game function by name.</p>
+      <details><summary>Show the header (47 lines)</summary><pre><code>#include "sw/hook.hpp"
+
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;string_view&gt;
+#include &lt;vector&gt;
+
+namespace sw::game {
+
+class Function;
+Function function(std::string_view name);
+
+class Function {
+public:
+    Function() = default;
+
+    explicit operator bool() const noexcept { return address_ != 0; }
+    std::string_view name() const noexcept { return name_; }
+    bool is_lua() const noexcept { return lua_; }
+
+    // Run the callback whenever the game calls this function.
+    bool on_call(HookCallback callback, void* user, std::string&amp; error) const;
+    bool remove_call(HookCallback callback, void* user, std::string&amp; error) const;
+
+    bool replace(ReplaceCallback callback, void* user, std::string&amp; error) const;
+    bool remove_replace(ReplaceCallback callback, void* user, std::string&amp; error) const;
+
+    // Calls the function. The caller states the signature; it is NOT
+    // checked. Returns a default value if the function is not valid.
+    template &lt;typename R, typename... Args&gt;
+    R call(Args... args) const {
+        if (!address_) return R();
+        return reinterpret_cast&lt;R (*)(Args...)&gt;(address_)(args...);
+    }
+
+private:
+    friend Function function(std::string_view name);
+    std::string name_;
+    std::uintptr_t address_ = 0;
+    bool lua_ = false;
+};
+
+// The names of all functions that begin with the prefix ("server.",
+// "c_ui_"). An empty prefix lists everything.
+std::vector&lt;std::string&gt; functions(std::string_view prefix = {});
+
+}  // namespace sw::game</code></pre></details>
+      <h3 id="h-game_state"><code>sw/game_state.hpp</code></h3>
+      <p>Application states (menu, game, editors) and their changes.</p>
+      <details><summary>Show the header (80 lines)</summary><pre><code>#include "sw/generated_game_state.hpp"
+
+#include &lt;cstdint&gt;
+#include &lt;vector&gt;
+
+namespace sw::state {
+
+enum class Id : std::uint8_t {
+    none = 0,
+    splash_screen = 1,
+    menu = 2,
+    game = 3,
+    component_editor = 4,
+    tile_editor = 5,
+    exit = 6,
+};
+
+// The phase of the state machine (manager + 0x9a50).
+enum class Phase : std::uint8_t {
+    unloading = 0,   // the old state is unloaded on a worker thread
+    waiting = 1,     // waiting for the transition object; then the new state is created
+    loading = 2,     // the new state is built on a worker thread
+    finishing = 3,   // the loading screen finishes, then the state is entered
+    running = 4,     // tick / update / draw run on the current state
+    unknown = 255,
+};
+
+enum class ChangeKind : std::uint8_t {
+    requested,       // the factory was called: a new state is being created (the switch function)
+    became_current,  // the pointer of the current state changed to another class (seen once per frame)
+};
+
+struct Change {
+    ChangeKind kind;
+    Id from;         // the state that was current
+    Id to;           // requested: the id given to the factory; became_current: the new state
+    void* manager;
+};
+
+enum class WorldEvent : std::uint8_t {
+    load,            // game_state_load_world is entered; object = the c_game_state_simulation
+    unload,          // the game state is unloaded (slot 3); object = the game state
+};
+
+using ChangeCallback = void (*)(const Change&amp; change, void* user);
+using WorldCallback = void (*)(WorldEvent event, void* object, void* user);
+
+const StateInfo* find(Id id);
+const StateInfo* find(const char* name);              // "menu", "game", ...
+const StateInfo* find_class(const char* class_name);  // the RTTI name
+const char* to_string(Id id);                         // "menu", ..., "none"
+const char* to_string(Phase phase);
+std::vector&lt;const char*&gt; names();                     // the short names, in id order
+std::size_t count();
+
+// Installs the hooks on the state machine update and on the factory. False if the game does not match,
+// the 32 bit build, or a hook cannot be placed.
+bool watch();
+// Removes the callbacks of this module (the hooks stay until Hook::remove_all).
+void unwatch();
+
+// The state manager, seen by the update hook; nullptr before the first frame after watch().
+void* manager();
+// The class of an object by its vtable: Id::none if it is not a state object.
+Id identify(const void* state_object);
+// The state object that is current now (manager + 0x9a20), nullptr if unknown.
+void* current_object();
+Id current();
+// The last id that was requested (manager + 0x4eb0); it equals current() once the change is complete.
+Id requested();
+Phase phase();
+bool running();                                       // phase() == Phase::running
+
+// Calls `callback` for every change. False before watch().
+bool on_change(ChangeCallback callback, void* user);
+
+// Calls `callback` when the world is loaded / the game state is unloaded. Installs two more hooks.
+bool on_world(WorldCallback callback, void* user);
+
+}  // namespace sw::state</code></pre></details>
+      <h3 id="h-hook"><code>sw/hook.hpp</code></h3>
+      <p>The hook mechanics: install, replace, remove, plan, arguments of the hooked function.</p>
+      <details><summary>Show the header (86 lines)</summary><pre><code>#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+
+
+namespace sw {
+
+
+using HookCallback = void (*)(void* self, void* user);
+
+using ReplaceCallback = bool (*)(void* self, void* user, std::uint64_t* result);
+
+
+enum class HookStatus {
+
+    ok,
+
+    unsupported_arch,      // not x64
+
+    target_invalid,        // target does not lie in the main module
+
+    already_hooked,        // a hook is already in place at this location
+
+    decode_failed,         // instructions at the target not safely decodable
+
+    relocation_failed,     //rel8 jump or no memory in reach
+
+    alloc_failed,
+
+    write_failed,
+
+};
+
+
+const char* to_string(HookStatus status);
+
+
+class Hook {
+
+public:
+
+
+    static HookStatus install(void* target, HookCallback callback, void* user,
+
+                              std::string&amp; error);
+
+
+    static HookStatus install_replace(void* target, ReplaceCallback replace, void* user,
+                                      std::string&amp; error);
+    static HookStatus remove_replace(void* target, ReplaceCallback replace, void* user,
+                                     std::string&amp; error);
+
+    static HookStatus remove(void* target, std::string&amp; error);
+
+    static HookStatus remove_callback(void* target, HookCallback callback, void* user,
+
+                                      std::string&amp; error);
+
+
+    static HookStatus plan(const std::uint8_t* code, std::size_t available,
+
+                           std::size_t&amp; length, std::string&amp; error);
+
+
+    static bool is_hooked(void* target);
+
+    static std::size_t count();
+
+
+    static std::uint64_t arg(unsigned index);
+
+
+
+    static void* arg2();
+
+
+    static std::size_t remove_all(unsigned timeout_ms = 2000);
+
+
+
+    static bool idle();
+
+};
+
+
+}  // namespace sw</code></pre></details>
+      <h3 id="h-input"><code>sw/input.hpp</code></h3>
+      <p>Key, char and mouse callbacks, key names, the key actions.</p>
+      <details><summary>Show the header (59 lines)</summary><pre><code>#include "sw/generated_input.hpp"
+
+#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+#include &lt;vector&gt;
+
+namespace sw::input {
+
+std::vector&lt;const ActionInfo*&gt; actions();                         // all 134, sorted by id
+const ActionInfo* find_action(std::uint16_t id);
+const ActionInfo* find_action(const char* name);                  // "action_jump"
+
+const char* key_name(int game_key);
+int game_key_from_glfw(int glfw_key);
+int glfw_key_from_game(int game_key);
+const char* default_key_name(const ActionInfo&amp; action);
+
+
+struct Binding { int key; int mouse; int pad_button; int pad_controller; int pad_axis; };
+bool binding(const ActionInfo&amp; action, Binding&amp; out);
+bool binding(const char* action_name, Binding&amp; out);
+// Name of the current keyboard binding ("space", "" when unassigned or not readable).
+const char* binding_key_name(const ActionInfo&amp; action);
+// Derived state: true in down when the key or the mouse button of the CURRENT binding is held according to GLFW's state. False (return)
+// when nothing is readable. Controller bindings are not looked at. Keyboard state is the window's own, not the game's gated state.
+bool is_down(const ActionInfo&amp; action, bool&amp; down);
+bool is_down(const char* action_name, bool&amp; down);
+// The actions whose current keyboard binding is this game key (several actions can share one key). Needs the table.
+std::vector&lt;const ActionInfo*&gt; actions_for_key(int game_key);
+
+// Prepares the hooks. False if the runtime is not attached or this is the 32 bit build.
+bool watch();
+void unwatch();
+
+// action: 0 release, 1 press, 2 repeat. game_key is -1 for a key the game drops. window is the GLFWwindow*.
+using KeyCallback = void (*)(int glfw_key, int game_key, int action, void* window, void* user);
+using CharCallback = void (*)(std::uint32_t codepoint, void* window, void* user);
+// button: GLFW mouse button 0..7 (0 left, 1 right, 2 middle), action 0 release / 1 press.
+using MouseButtonCallback = void (*)(int button, int action, void* window, void* user);
+
+// One callback of each kind (a second call replaces the first). False before watch() or when the hook is refused.
+bool on_key(KeyCallback callback, void* user);
+bool on_char(CharCallback callback, void* user);
+bool on_mouse_button(MouseButtonCallback callback, void* user);
+
+// The GLFW window and the platform object (nullptr until the window exists; checked: window +0x20 and
+// platform +0xd38 point at each other).
+void* glfw_window();
+void* platform();
+
+// Safe reads of the state the game callbacks keep (false when not readable / no window).
+bool mouse_down(int button, bool&amp; down);                          // button 0..7
+bool cursor_ndc(float&amp; x, float&amp; y);                              // -1..1 over the window client area
+bool glfw_key_state(int glfw_key, std::uint8_t&amp; raw);             // GLFW's own state byte of the window (0 = up)
+// Number of events waiting in a ring buffer of the platform (the game drains them once per frame).
+enum class Ring { chars, key_events, key_repeats, mouse_events };
+bool queued(Ring ring, std::uint32_t&amp; count);
+
+}  // namespace sw::input</code></pre></details>
+      <h3 id="h-instances"><code>sw/instances.hpp</code></h3>
+      <p>Live objects of a class (track / list / count).</p>
+      <details><summary>Show the header (26 lines)</summary><pre><code>#include "sw/hook.hpp"
+#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;string_view&gt;
+#include &lt;vector&gt;
+
+
+namespace sw::Instances {
+
+
+
+HookStatus track(std::string_view cls, std::string&amp; error);
+
+
+
+void untrack(std::string_view cls);
+std::vector&lt;std::uintptr_t&gt; list(std::string_view cls, bool only_alive = true);
+std::size_t count(std::string_view cls);
+
+std::vector&lt;std::string&gt; tracked();
+
+void clear();
+
+
+}  // namespace sw::Instances</code></pre></details>
+      <h3 id="h-mapicons"><code>sw/mapicons.hpp</code></h3>
+      <p>The map icon slots and new marker types.</p>
+      <details><summary>Show the header (128 lines)</summary><pre><code>#include "sw/textures.hpp"
+
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::mapicons {
+
+inline constexpr std::uint32_t kRvaMapIconsInit = 0x6a05e0;      // fills the slots
+inline constexpr std::uint32_t kRvaMapIconSlot = 0x6a2120;       // (map, slot, name, context, color, scale)
+inline constexpr std::uint32_t kRvaAtlasAddSprites = 0x1df3e0;   // (target, ., mm_string* xml path)
+inline constexpr const char* kAtlasXml = "graphics/ui/map/atlas_mapicons.xml";
+inline constexpr const char* kAtlasTexture = "graphics/ui/map/atlas_mapicons.txtr";
+inline constexpr const char* kCustomXml = "graphics/ui/map/atlas_mapicons_custom.xml";
+inline constexpr const char* kCustomTexture = "graphics/ui/map/atlas_mapicons_custom.txtr";
+inline constexpr int kAtlasSize = 1024;
+
+struct Slot {
+    std::uint32_t offset;   // inside the map object
+    const char* name;       // a region of the atlas
+    std::uint32_t color;    // ARGB
+    float scale;
+};
+
+inline constexpr Slot kSlots[56] = {
+    {0x10, "waypoint", 0xffe6e6e6u, 1.0000f},
+    {0x20, "targetcircle", 0xffffffffu, 1.0000f},
+    {0x30, "survivoricon", 0xff000064u, 0.6000f},
+    {0x40, "fireicon", 0xff000064u, 0.6000f},
+    {0x50, "iceicon", 0xff000064u, 0.6000f},
+    {0x60, "mysteryicon", 0xff000064u, 0.6000f},
+    {0x70, "crateicon", 0xff000064u, 0.6000f},
+    {0x80, "playercircle", 0xffe6e6e6u, 1.0000f},
+    {0x90, "playercircle", 0xff131516u, 1.0000f},
+    {0xa0, "playercircle", 0xff0000dcu, 1.0000f},
+    {0xb0, "playercircle", 0xffffffffu, 1.0000f},
+    {0xc0, "circle", 0xff131516u, 1.0000f},
+    {0xd0, "circle", 0xffe6e6e6u, 1.0000f},
+    {0xe0, "circle", 0xff0000dcu, 1.0000f},
+    {0xf0, "dashedcircle", 0xff0000dcu, 1.0000f},
+    {0x100, "circle", 0xff000064u, 1.0000f},
+    {0x110, "circle", 0xff82f43cu, 1.0000f},
+    {0x120, "missionmarker", 0xffe6e6e6u, 0.8000f},
+    {0x130, "questionmark", 0xffe6e6e6u, 0.8000f},
+    {0x140, "questionmark", 0xffe6e6e6u, 0.8000f},
+    {0x150, "hangar", 0xff000064u, 0.9000f},
+    {0x160, "home", 0xffe6e6e6u, 0.9000f},
+    {0x170, "home_purchase", 0xff131516u, 0.6000f},
+    {0x180, "network", 0xffe6e6e6u, 0.6000f},
+    {0x1a0, "iconcross", 0xffffffffu, 0.5000f},
+    {0x1b0, "iconwreckage", 0xffffffffu, 0.5000f},
+    {0x1c0, "iconterminal", 0xffffffffu, 0.5000f},
+    {0x1d0, "iconmilitary", 0xffffffffu, 0.5000f},
+    {0x1e0, "iconheritage", 0xffffffffu, 0.5000f},
+    {0x1f0, "iconrig", 0xffffffffu, 0.5000f},
+    {0x200, "iconindustrial", 0xffffffffu, 0.5000f},
+    {0x210, "iconhospital", 0xffffffffu, 0.5000f},
+    {0x220, "iconscience", 0xffffffffu, 0.5000f},
+    {0x230, "iconairport", 0xffffffffu, 0.5000f},
+    {0x240, "iconcoastguard", 0xffffffffu, 0.5000f},
+    {0x250, "iconlighthouse", 0xffffffffu, 0.5000f},
+    {0x260, "iconfuel", 0xffffffffu, 0.5000f},
+    {0x270, "iconfuel", 0xff82f43cu, 0.5000f},
+    {0x280, "hospital_ship", 0xffffffffu, 0.7000f},
+    {0x290, "refueler_plane", 0xffffffffu, 0.7000f},
+    {0x2a0, "ore", 0xffffffffu, 0.5000f},
+    {0x2b0, "ingot", 0xffffffffu, 0.5000f},
+    {0x2c0, "fish", 0xffffffffu, 0.5000f},
+    {0x2d0, "dollar_sign", 0xffffffffu, 0.5000f},
+    {0x330, "cargo_pickup", 0xff000000u, 0.6000f},
+    {0x340, "flag1", 0xff000064u, 0.6000f},
+    {0x350, "flag2", 0xff000064u, 0.6000f},
+    {0x360, "house", 0xff000064u, 0.6000f},
+    {0x370, "car", 0xff000064u, 0.6000f},
+    {0x380, "plane2", 0xff000064u, 0.6000f},
+    {0x390, "tank", 0xff000064u, 0.6000f},
+    {0x3a0, "helicopter", 0xff000064u, 0.6000f},
+    {0x3b0, "ship2", 0xff000064u, 0.6000f},
+    {0x3c0, "small_boat", 0xff000064u, 0.6000f},
+    {0x3d0, "attack", 0xff000064u, 0.6000f},
+    {0x3e0, "defence", 0xff000064u, 0.6000f},
+};
+
+// A region of the atlas, as the XML has it.
+struct Region {
+    std::string name;
+    float l = 0, r = 0, b = 0, t = 0;
+};
+
+// The regions of the XML of the game (rom/graphics/ui/map/atlas_mapicons.xml).
+bool read_regions(std::vector&lt;Region&gt;&amp; out, std::string&amp; error);
+
+struct CustomIcon {
+    std::string name;
+    int x = 0, y = 0, width = 0, height = 0;   // in pixels of the atlas
+};
+
+// Puts a picture (width and height multiples of 4, at most 256) into the first free place
+// of the atlas and writes the two new files. Names must be new (not a region of the game).
+bool add_icon(const std::string&amp; name, const gfx::Image&amp; picture, std::string&amp; error);
+
+std::vector&lt;CustomIcon&gt; custom_icons();
+
+// Hooks graphic_atlas_add_sprites so that the game reads the custom description.
+bool redirect_atlas(std::string&amp; error);
+
+inline constexpr std::uint32_t kRvaMarkerDraw = 0x6a3a20;        // draws one map object (924 bytes)
+inline constexpr std::uint32_t kRvaMarkerSwitchCmp = 0x6a3c57;    // cmp eax, 0x13
+inline constexpr std::uint32_t kRvaMarkerTableLoad = 0x6a3c69;    // mov edx, [rcx+rax*4+disp32]
+inline constexpr std::uint32_t kRvaMarkerTable = 0x6a3d6c;        // 20 int32 RVAs
+inline constexpr std::uint32_t kRvaMarkerCommon = 0x6a3d36;       // the common tail: r8 = slot, call 0x69f800
+inline constexpr std::uint32_t kRvaMarkerDefault = 0x6a3d54;      // draws nothing
+inline constexpr int kFirstCustomMarkerType = 20;
+inline constexpr int kMaxCustomMarkerTypes = 16;
+
+// Adds a marker type that shows the region `region` (of the game or of add_icon) with this
+// colour (ARGB) and scale; returns its number (20, 21, ...) or -1 (error says why). The
+// first call patches the switch. Call it before the map is drawn.
+int add_marker_type(const std::string&amp; region, std::uint32_t argb, float scale, std::string&amp; error);
+
+// The number of marker types added, and how many have a slot in the map now.
+int marker_type_count();
+int marker_slots_built();
+
+// Forgets the custom icons and deletes the two files.
+void clear();
+
+}  // namespace sw::mapicons</code></pre></details>
+      <h3 id="h-mesh"><code>sw/mesh.hpp</code></h3>
+      <p>Read, change and write .mesh files.</p>
+      <details><summary>Show the header (61 lines)</summary><pre><code>#include &lt;array&gt;
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::gfx {
+
+inline constexpr std::size_t kMeshHeaderSize = 14;
+inline constexpr std::size_t kMeshVertexSize = 28;
+inline constexpr std::uint16_t kMeshVersion = 7;
+inline constexpr std::uint16_t kMeshLayoutWord = 0x13;
+
+struct Vertex {
+    float x = 0, y = 0, z = 0;
+    std::uint8_t r = 255, g = 255, b = 255, a = 255;
+    float nx = 0, ny = 1, nz = 0;
+};
+
+struct Submesh {
+    std::uint32_t index_count = 0;
+    std::uint16_t a = 0;   // meaning not known
+    std::uint16_t b = 0;   // meaning not known
+    float min[3] = {0, 0, 0};
+    float max[3] = {0, 0, 0};
+    std::string name;
+    std::uint16_t c = 0;   // meaning not known
+};
+
+struct Mesh {
+    std::uint16_t version = kMeshVersion;
+    std::uint16_t second_word = 1;
+    std::uint16_t layout_word = kMeshLayoutWord;
+    std::uint16_t reserved = 0;
+    std::vector&lt;Vertex&gt; vertices;
+    std::vector&lt;std::uint16_t&gt; indices;
+    std::vector&lt;Submesh&gt; submeshes;
+    std::string source;
+};
+
+// Puts one submesh over the whole index array, with the bounding box of the
+// vertices and the name "ID1". Use it for a mesh that was built by hand.
+void add_submesh(Mesh&amp; mesh);
+
+// Reads a mesh file. Checks the magic, the sizes and that every index is below
+// the vertex count.
+bool read_mesh(const std::string&amp; path, Mesh&amp; out, std::string&amp; error);
+
+// Writes a NEW mesh file; refuses the file the mesh was read from.
+bool write_mesh(const std::string&amp; path, const Mesh&amp; mesh, std::string&amp; error);
+
+// The bounding box of the vertices. False for an empty mesh.
+bool bounds(const Mesh&amp; mesh, float min[3], float max[3]);
+
+// Moves every vertex.
+void translate(Mesh&amp; mesh, float dx, float dy, float dz);
+
+// Scales every vertex around the origin (the normals stay unit length for a
+// uniform scale; the caller fixes them for another one).
+void scale(Mesh&amp; mesh, float sx, float sy, float sz);
+
+}  // namespace sw::gfx</code></pre></details>
+      <h3 id="h-mod"><code>sw/mod.hpp</code></h3>
+      <p>The skeleton of a mod: SW_MOD, sw_mod_start / sw_mod_stop, log, sleep, running, rt().</p>
+      <details><summary>Show the header (80 lines)</summary><pre><code>#include "sw/console.hpp"
+
+#include "sw/instances.hpp"
+
+#include "sw/runtime.hpp"
+
+
+#include &lt;cstdarg&gt;
+
+
+// Self explanatory
+void sw_mod_start();
+void sw_mod_stop();
+
+
+namespace sw::mod {
+
+
+// false as soon as the mod should be unloaded. Loops in sw_mod_start()
+// must check this regularly.
+
+bool running();
+
+
+// Waits ms milliseconds. Returns false if unloading begins in the
+// meantime - then leave sw_mod_start().
+bool sleep(unsigned ms);
+
+
+// The runtime of the game (already connected and checked).
+Runtime&amp; rt();
+
+
+// Name from SW_MOD(...).
+const char* name();
+
+
+// Output into the console window and into the log file, with line end.
+void log(const char* format, ...);
+
+
+namespace detail {
+
+int dll_main(void* module, unsigned long reason, const char* name);
+
+unsigned long shutdown();
+
+}  // namespace detail
+
+
+}  // namespace sw::mod
+
+
+
+#if defined(_M_IX86)
+
+#define SW_EXPORT_PLAIN(name, bytes) \
+
+    __pragma(comment(linker, "/EXPORT:" #name "=_" #name "@" #bytes))
+
+#else
+
+#define SW_EXPORT_PLAIN(name, bytes)
+
+#endif
+
+
+// Exports that swinject uses for detection and unloading, and the DLL
+
+// entry point.
+
+#define SW_MOD(NAME) \
+    SW_EXPORT_PLAIN(swmod_shutdown, 4) \
+    extern "C" __declspec(dllexport) const char* swmod_name() { return NAME; } \
+    extern "C" __declspec(dllexport) unsigned long __stdcall swmod_shutdown(void*) { \
+        return ::sw::mod::detail::shutdown(); \
+    } \
+    extern "C" int __stdcall DllMain(void* module, unsigned long reason, void*) { \
+        return ::sw::mod::detail::dll_main(module, reason, NAME); \
+    }</code></pre></details>
+      <h3 id="h-network"><code>sw/network.hpp</code></h3>
+      <p>The network messages and internal queues by name and id.</p>
+      <details><summary>Show the header (62 lines)</summary><pre><code>#include "sw/generated_packet_fields.hpp"
+#include "sw/generated_network2.hpp"
+#include "sw/generated_packets.hpp"
+
+#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::net {
+
+const MessageInfo* find(Family family, std::uint16_t id);
+const MessageInfo* find(Family family, const char* name);          // the short name, e.g. "add_map_object"
+const MessageInfo* find_class(const char* class_name);             // the RTTI name
+std::vector&lt;const MessageInfo*&gt; messages(Family family);
+const char* to_string(Family family);                             // "s2c_event", ...
+std::size_t count(Family family);
+
+const MessageInfo* identify(const void* object);
+
+// The id stored in an object of a network family (at +8), 0 if unreadable.
+std::uint32_t read_id(const void* object);
+
+// The id of a net_message class (1..17; 0 if info is not a net_message). No game needed.
+std::uint8_t net_id(const MessageInfo&amp; info);
+
+std::vector&lt;const FieldInfo*&gt; fields(const MessageInfo&amp; info);
+
+// Safe reads of a field of a live message (the offset is inside the message object).
+bool read_u8(const void* message, std::uint16_t offset, std::uint8_t&amp; out);
+bool read_u16(const void* message, std::uint16_t offset, std::uint16_t&amp; out);
+bool read_u32(const void* message, std::uint16_t offset, std::uint32_t&amp; out);
+bool read_u64(const void* message, std::uint16_t offset, std::uint64_t&amp; out);
+bool read_f32(const void* message, std::uint16_t offset, float&amp; out);
+bool read_f64(const void* message, std::uint16_t offset, double&amp; out);
+// An mm_string field (kind string16).
+bool read_string(const void* message, std::uint16_t offset, std::string&amp; out);
+// Three doubles (a block of 24 bytes that holds a position).
+bool read_vec3d(const void* message, std::uint16_t offset, double out[3]);
+
+using MessageCallback = void (*)(const MessageInfo&amp; info, void* message, void* stream, bool writing, void* user);
+// Called after the message was read, inside the function that handles it (the handler_hint).
+using HandledCallback = void (*)(const MessageInfo&amp; info, void* message, void* user);
+
+// Prepares the hooks. False if the game does not match or this is the 32 bit build.
+bool watch();
+
+// Calls `callback` every time the message is read or written. False before watch(), for the internal
+// families (their slot 0 is a destructor) and for a serialiser that cannot be hooked.
+bool on_message(Family family, std::uint16_t id, MessageCallback callback, void* user);
+
+// Calls `callback` after an s2c_event / c2s_request was read, in its handler. Only for ids that have a
+// handler_hint. The message is found among the first three arguments of the handler by its vtable.
+bool on_handled(Family family, std::uint16_t id, HandledCallback callback, void* user);
+
+// How many times the serialiser of this message ran since on_message / on_handled hooked it.
+std::uint64_t seen(Family family, std::uint16_t id);
+
+// Removes the callbacks of this module.
+void unwatch();
+
+}  // namespace sw::net</code></pre></details>
+      <h3 id="h-obj"><code>sw/obj.hpp</code></h3>
+      <p>Checked handles to living objects.</p>
+      <details><summary>Show the header (110 lines)</summary><pre><code>#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+#include &lt;mutex&gt;
+#include &lt;string&gt;
+#include &lt;string_view&gt;
+#include &lt;vector&gt;
+
+namespace sw {
+
+class Objects;
+
+// A reference to an object of the game. Copying it is cheap; it stays
+// valid as long as the object exists.
+class Obj {
+public:
+    Obj() = default;
+
+    // The handle points to a known slot of the registry.
+    bool valid() const noexcept;
+
+    // The object was not destroyed (as far as the registry knows).
+    bool alive() const noexcept;
+
+    // The address of the object. Only the api layer should use it.
+    std::uintptr_t address() const noexcept;
+
+    // The name of the class, from the RTTI of the game.
+    std::string_view class_name() const noexcept;
+
+    // The object is an instance of this class (or of a derived one).
+    bool is(std::string_view cls) const noexcept;
+
+    template &lt;typename T&gt;
+    bool get(std::size_t offset, T&amp; out) const noexcept {
+        return read_bytes(offset, &amp;out, sizeof(T));
+    }
+    template &lt;typename T&gt;
+    bool set(std::size_t offset, const T&amp; value) const noexcept {
+        return write_bytes(offset, &amp;value, sizeof(T));
+    }
+    bool read_bytes(std::size_t offset, void* out, std::size_t size) const noexcept;
+    bool write_bytes(std::size_t offset, const void* data, std::size_t size) const noexcept;
+
+    bool operator==(const Obj&amp; other) const noexcept;
+    bool operator!=(const Obj&amp; other) const noexcept;
+
+private:
+    friend class Objects;
+    static constexpr std::uint32_t kInvalidSlot = 0xffffffffu;
+
+    std::uint32_t slot_ = kInvalidSlot;
+    std::uint32_t generation_ = 0;
+};
+
+// The registry of the objects that the mod has seen.
+class Objects {
+public:
+    static Objects&amp; instance();
+
+    // Remembers an object. If the address is already known, the old
+    // handle becomes invalid: the memory was reused.
+    Obj observe(std::uintptr_t address, std::string_view cls);
+
+    // The object was destroyed. All handles of it become invalid.
+    void destroy(std::uintptr_t address);
+
+    // The handle of an address, if the registry knows it.
+    Obj find(std::uintptr_t address) const;
+
+    // All known objects of a class (and of the classes derived from it).
+    std::vector&lt;Obj&gt; of_class(std::string_view cls) const;
+
+    // All known objects.
+    std::vector&lt;Obj&gt; all() const;
+
+    // The number of the slots (including the dead ones).
+    std::size_t size() const noexcept;
+
+    // The number of the objects that were not destroyed.
+    std::size_t alive_count() const noexcept;
+
+    // Forgets everything. Call it after Hook::remove_all().
+    void clear();
+
+    // The access of a slot. The generation has to match, otherwise the
+    // handle belongs to an object that is gone.
+    bool valid_slot(std::uint32_t slot, std::uint32_t generation) const noexcept;
+    std::uintptr_t address_of(std::uint32_t slot, std::uint32_t generation) const noexcept;
+    std::string_view class_of_slot(std::uint32_t slot, std::uint32_t generation) const noexcept;
+
+private:
+    struct Slot {
+        std::uintptr_t address = 0;
+        std::uint32_t generation = 1;
+        std::uint32_t class_id = 0xffffffffu;
+        bool alive = false;
+    };
+
+    Objects() = default;
+
+    // The index of a class name, or 0xffffffff if it is unknown.
+    std::uint32_t class_id(std::string_view cls);
+    std::string_view class_name(std::uint32_t id) const;
+
+    mutable std::mutex mutex_;
+    std::vector&lt;Slot&gt; slots_;
+    std::vector&lt;std::string&gt; class_names_;
+};
+
+}  // namespace sw</code></pre></details>
+      <h3 id="h-overlay"><code>sw/overlay.hpp</code></h3>
+      <p>Physical overlay of mod folders with restore.</p>
+      <details><summary>Show the header (65 lines)</summary><pre><code>#include &lt;cstddef&gt;
+#include &lt;filesystem&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::overlay {
+
+namespace fs = std::filesystem;
+
+struct ModPack {
+    std::string name;                    // the folder name
+    fs::path dir;
+    std::vector&lt;fs::path&gt; dlls;          // *.dll in the folder or in its dll\ sub folder
+    std::vector&lt;std::string&gt; rom_dirs;   // top level folders of the mod (as spelled in the mod)
+    std::size_t files = 0;               // files below those folders
+};
+
+struct Options {
+    fs::path game_dir;                   // the folder with stormworks64.exe and the rom folder
+    std::vector&lt;fs::path&gt; mod_roots;     // folders that contain mod folders
+    std::vector&lt;std::string&gt; only;       // names of the mods to use, in this order; empty = all, alphabetical
+    bool dry_run = false;
+    bool allow_running = false;          // do not refuse while the game is running (for tests and for tools that know better)
+};
+
+enum class Kind { added, replaced };
+
+struct Entry {
+    Kind kind = Kind::added;
+    std::string rel;                     // below rom, with forward slashes, the spelling of the game when the file existed
+    std::string mod;
+    std::string installed_sha;           // SHA-256 of the mod's file
+    std::string original_sha;            // SHA-256 of the replaced file (replaced only)
+};
+
+struct Report {
+    bool ok = false;
+    std::string error;
+    std::vector&lt;std::string&gt; notes;
+    std::vector&lt;std::string&gt; warnings;
+    std::vector&lt;Entry&gt; entries;
+    std::size_t added = 0, replaced = 0;        // apply
+    std::size_t restored = 0, removed = 0, kept = 0;   // restore: originals put back, mod files removed, files left alone (conflicts)
+    bool active = false;                        // status: an overlay is installed (a journal exists)
+};
+
+// The mods in the given folders (a folder that has a dll or at least one file below a rom folder).
+std::vector&lt;ModPack&gt; discover(const std::vector&lt;fs::path&gt;&amp; roots, const std::vector&lt;std::string&gt;&amp; only, std::vector&lt;std::string&gt;* warnings = nullptr);
+
+// Lays the mods over rom. Restores an old, unfinished overlay first.
+Report apply(const Options&amp; options);
+
+// Takes the overlay away. Nothing to do (ok, nothing changed) when there is no journal.
+Report restore(const fs::path&amp; game_dir, bool allow_running = false);
+
+// Reads the journal.
+Report status(const fs::path&amp; game_dir);
+
+// True while stormworks64.exe runs.
+bool game_running();
+
+// The folder where the journal and the backups live.
+fs::path state_dir(const fs::path&amp; game_dir);
+
+}  // namespace sw::overlay</code></pre></details>
+      <h3 id="h-physics"><code>sw/physics.hpp</code></h3>
+      <p>The Bullet world: gravity, solver iterations, step time.</p>
+      <details><summary>Show the header (89 lines)</summary><pre><code>// I believe some of the things here don't work
+
+#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+
+namespace sw::physics {
+
+struct Vec3 {
+    double x = 0, y = 0, z = 0;
+};
+
+// Hooks the step function of the world (0x133e90). False if the game does not match,
+// the hook fails, or this is the 32 bit build.
+bool watch();
+
+// A world was stepped in the last moments.
+bool ready();
+
+// The gravity of the world (m_gravity, meters per second squared; (0, -10, 0) by default).
+bool gravity(Vec3&amp; out);
+
+// Asks for this gravity; it is written at the next step. Refuses a value that is not
+// finite or larger than 1000 in any component.
+bool set_gravity(const Vec3&amp; value);
+
+// The solver iterations of the world (10 by default).
+bool solver_iterations(int&amp; out);
+
+// Asks for this number of iterations (1 to 256); it is written at the next step.
+bool set_solver_iterations(int iterations);
+
+// The fixed time step the game passed to the last step (m_fixedTimeStep, seconds),
+// and the time of the last step that has not been simulated yet (m_localTime).
+bool fixed_time_step(double&amp; out);
+bool local_time(double&amp; out);
+
+// The number of steps seen since watch(). Divided by the time it is the physics rate.
+std::uint64_t steps();
+
+// They need no watch(), only the attached runtime; the code is checked first (the
+// opcodes and that the displacements point at the two constants), so a game that does
+// not match is refused. The change takes effect at the next call of the step.
+
+// The fixed time step of one internal step (1/180 s in the game), 1/2000 to 1/30.
+bool set_fixed_time_step(double seconds);
+// The time one call of the physics step advances (1/60 s in the game), 1/480 to 1/10.
+// A larger value runs the physics faster than the game clock, a smaller one slower.
+bool set_step_time(double seconds);
+// The most internal steps of one call (1000 in the game), 1 to 100000.
+bool set_max_sub_steps(int steps);
+// What the code uses now. False when the code does not match.
+bool step_time(double&amp; out);
+bool max_sub_steps(int&amp; out);
+// Puts the three constants back to the values of the game.
+bool restore_time_steps();
+
+// Stops forcing the values of set_gravity / set_solver_iterations. What is in the world
+// stays until the game changes it.
+void clear_overrides();
+
+// Checks a pointer: it is a world of the game (the vtable of the discrete or the
+// soft-rigid world).
+bool is_world(std::uintptr_t address);
+
+inline constexpr std::uint32_t kVtableDiscreteWorld = 0xae6058;    // btDiscreteDynamicsWorld
+inline constexpr std::uint32_t kVtableSoftRigidWorld = 0xae6710;   // btSoftRigidDynamicsWorld
+inline constexpr std::uint32_t kRvaStepSimulation = 0x133e90;      // 778 bytes
+inline constexpr std::uint32_t kRvaSetGravity = 0x134290;          // slot 17, a leaf without .pdata
+inline constexpr std::uint32_t kRvaGetGravity = 0x134370;          // slot 18, a leaf without .pdata
+inline constexpr std::uint32_t kRvaInternalSingleStep = 0x1341a0;  // slot 39, 230 bytes
+inline constexpr std::uint32_t kRvaSolverInfoCtor = 0x1328a0;      // sets 10 iterations
+inline constexpr std::uint32_t kRvaPhysicsSceneStep = 0x1a3bc0;    // the only caller, 138 bytes
+inline constexpr std::uint32_t kRvaConstFixedStep = 0xbb3318;      // double 1/180 (read by 0x1a3bcf)
+inline constexpr std::uint32_t kRvaConstStepTime = 0xbb33a0;       // double 1/60 (read by 0x1a3bda)
+inline constexpr std::uint32_t kRvaImmMaxSubSteps = 0x1a3be4;      // int32 1000 in "mov r8d, imm32"
+inline constexpr double kGameFixedStep = 0.0055555556900799274;   // the float 1/180 as a double
+inline constexpr double kGameStepTime = 0.01666666753590107;     // the float 1/60 as a double
+inline constexpr int kGameMaxSubSteps = 1000;
+inline constexpr std::size_t kSlotSetGravity = 17;
+inline constexpr std::size_t kSlotGetGravity = 18;
+inline constexpr std::size_t kOffSolverInfo = 0xa8;
+inline constexpr std::size_t kOffSolverTimeStep = 0xc0;
+inline constexpr std::size_t kOffSolverIterations = 0xd0;
+inline constexpr std::size_t kOffGravity = 0x1e0;
+inline constexpr std::size_t kOffLocalTime = 0x200;
+inline constexpr std::size_t kOffFixedTimeStep = 0x208;
+inline constexpr std::size_t kOffSynchronizeMotionStates = 0x23c;
+
+}  // namespace sw::physics</code></pre></details>
+      <h3 id="h-render"><code>sw/render.hpp</code></h3>
+      <p>Frame end, OpenGL entry points, shaders, uniforms, render targets, the deferred pipeline.</p>
+      <details><summary>Show the header (314 lines)</summary><pre><code>// render.hpp - the graphics engine of the game: where a frame ends, which OpenGL calls it
+// uses, and where the post-processing sits. A base for upscalers and render mods.
+//
+// What is proven (REPORT 3.111; static):
+//
+//  * The game renders with OpenGL 3+ through a statically linked GLFW (3.3 style). The window
+//    context has a table of function pointers: GLFW's swapBuffers is 0x90740 (it ends in
+//    SwapBuffers(window + 0x270)) and makeCurrent is 0x906c0; the table is filled by 0x90f90
+//    at window + 0x240.. . The swap is the ONE place where a frame ends.
+//  * All OpenGL functions beyond 1.1 are loaded by one stub each (2,591 names); the pointer
+//    is kept in a slot. gl_function() returns what the game loaded. 59 of them are used by
+//    the engine; the 43 functions of OpenGL 1.1 come through the import table of OPENGL32.dll.
+//  * The renderer object (constructor 0x6d16c0) holds 80 shader objects at fixed offsets.
+//    The frame function 0x6d4de0 (36 KB) runs, in the order of its code: the depth downsample
+//    and SSAO, the scene, then temporal AA (shader temporal_aa), motion blur, tonemap and
+//    FXAA. The engine already has what a temporal upscaler needs: a velocity texture
+//    (texture_velocity), the depth, the colour of the last frame and a per-frame offset
+//    (rand_offset, the jitter) - see shader_inputs in the mapping.
+//
+// THE PIPELINE (REPORT 3.113). The renderer is deferred. One view ("pipeline", 0x66e3a0 builds it)
+// owns these targets: [0] the G-buffer (RGBA16F, RGBA8, RG16F = the VELOCITY, depth/stencil),
+// [1] the lit scene colour (the `light` shader composes the G-buffer into it), [2] the history
+// of the last frame, [3] the output of the anti-aliasing, then SSAO, bloom, and small ones. The
+// anti-aliasing mode is a field of the pipeline (1 = FXAA, 2 = temporal AA). In mode 2 the pass
+// 0x68fde0 reads [1] (colour), [0] attachment 2 (velocity) and [0] depth, the history [2] and
+// writes [3]; the tonemap then reads [3] and DRAWS TO THE SCREEN (framebuffer 0) at the window
+// size. There is no separate final blit. An upscaler therefore goes between the scene colour
+// and the tonemap: read upscaler_inputs(), write `output_texture`. upscaler_inputs() delivers
+// exactly the OpenGL ids a temporal upscaler needs. The jitter is NOT in the engine:
+// `rand_offset` of the TAA is two CRT rand() values (noise for the filter), the projection
+// is not jittered; a temporal upscaler has to add its own.
+//
+//   #include "sw/render.hpp"
+//
+//   sw::render::watch();                                 // once, in sw_mod_start
+//   sw::render::on_frame_end(my_overlay, nullptr);       // runs on the render thread, GL context current
+//   void* fn = sw::render::gl_function("glBindFramebuffer");
+//
+// RENDER TARGETS (REPORT 3.112). Every framebuffer of the renderer is an object of the family
+// mm_resource_target_* (target, multiple, multisample, mipmapped). watch_targets() hooks the
+// functions that create and delete their OpenGL objects and keeps the list, so targets()
+// returns every live target with its OpenGL framebuffer, colour and depth texture ids, size
+// and format. The size of the main view is the client area of the window; there is no render
+// scale setting (graphics state + 0x8f0 / 0x8f4). The last use of the scene target is a blit
+// to framebuffer 0 (slot 4 of the class); that is the place for an upscaler to take over.
+//
+// ABOUT DLSS. NVIDIA's DLSS SDK has no OpenGL backend (Direct3D 11/12 and Vulkan only), and
+// this game is OpenGL. So there are three honest ways: (1) a spatial upscaler written as an
+// OpenGL shader in the place of the FXAA pass (FSR 1 style; needs nothing the engine lacks);
+// (2) a temporal upscaler (FSR 2 style) in the place of temporal_aa, which gets the velocity,
+// depth and jitter the engine already has; (3) DLSS itself through a shared texture between
+// OpenGL and Vulkan/D3D (GL_EXT_memory_object or WGL_NV_DX_interop2) - heavy, and the colour,
+// depth and velocity have to be copied out and the result back. This header gives the base
+// for all three: the frame end, the GL entry points, the pass order and the shader offsets.
+// It does not contain an upscaler.
+
+#include "sw/generated_gl.hpp"
+#include "sw/generated_render.hpp"
+
+#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+#include &lt;vector&gt;
+
+namespace sw::render {
+
+// Called once per frame, on the render thread, with the GL context current, just before the
+// frame is presented. `window` is the GLFW window of the game.
+using FrameCallback = void (*)(void* window, void* user);
+
+// Hooks the swap (0x90740). False if the game does not match, the hook fails, or this is the
+// 32 bit build.
+bool watch();
+
+// The swap was called in the last moments.
+bool ready();
+
+// Adds a callback for the end of a frame. False before watch(), or when the same
+// callback/user pair is already there.
+bool on_frame_end(FrameCallback callback, void* user);
+
+// Removes all callbacks of this module.
+void remove_callbacks();
+
+// The number of frames presented since watch(), and the time between the last two
+// presents in milliseconds.
+std::uint64_t frames();
+double frame_ms();
+
+// The window of the last frame and its device context (window + 0x270).
+void* window();
+void* window_dc();
+
+// The entry of the table for this name, or nullptr. Names are the OpenGL names
+// ("glBindFramebuffer"), as in the mapping gl_functions.tsv.
+const GlEntry* gl_entry(const char* name);
+
+// The function pointer the game holds for this name (what wglGetProcAddress returned, or the
+// entry of OPENGL32.dll), or nullptr when the name is unknown or the game has not loaded it.
+void* gl_function(const char* name);
+
+// How many places of the engine call this function (0 = loaded but never used).
+int gl_uses(const char* name);
+
+// The viewport of the current framebuffer (glGetIntegerv(GL_VIEWPORT)). Only valid inside a
+// frame callback (GL context current on this thread).
+bool viewport(int&amp; x, int&amp; y, int&amp; width, int&amp; height);
+
+// Your own shader uniform. The game sets only the uniforms its C++ shader classes know, but a uniform that you add to
+// a shader (a mod folder with the edited .glsl) keeps the value you give it: uniforms belong to the program object.
+// set_uniform() finds every program that declares `name` and writes the value into it (1 to 4 floats; or one int).
+// Call it from a frame callback (render thread, GL context current), for example once a frame or when the value changes.
+// Returns the number of programs that took the value (0: no program declares the name, or not watching).
+// The program that was bound is bound again afterwards. Not tried in a running game.
+int set_uniform(const char* name, const float* values, int count);
+int set_uniform_int(const char* name, int value);
+
+// ---- render targets and the size of the view --------------------------------------------------
+enum class TargetKind { target, multiple, multisample, mipmapped };
+
+// The format enum the renderer uses (REPORT 3.112) and what it is in OpenGL.
+enum class TargetFormat : int {
+    none = 0,
+    depth24 = 1,           // GL_DEPTH_COMPONENT24
+    depth24_shadow = 2,    // GL_DEPTH_COMPONENT24, linear filter, compare mode
+    depth24_stencil8 = 3,  // GL_DEPTH24_STENCIL8
+    rgba8 = 4,
+    rgba16f = 5,
+    rgba32f = 6,
+    r8 = 7,
+    r16f = 8,
+    rg8 = 9,
+    rg16f = 10,
+};
+
+// The OpenGL internal format (GL_RGBA16F = 0x881A, ...) of a format, or 0.
+unsigned gl_internal_format(TargetFormat format);
+// Bytes per pixel of a colour format, 0 for depth formats and none.
+int bytes_per_pixel(TargetFormat format);
+
+struct Attachment {
+    unsigned texture = 0;
+    int index = 0;
+    TargetFormat format = TargetFormat::none;
+};
+
+struct TargetInfo {
+    std::uintptr_t address = 0;
+    TargetKind kind = TargetKind::target;
+    unsigned fbo = 0;                 // the OpenGL framebuffer object
+    int width = 0, height = 0;
+    unsigned color_texture = 0;       // first colour attachment (0 = none)
+    TargetFormat color_format = TargetFormat::none;
+    unsigned depth_texture = 0;
+    TargetFormat depth_format = TargetFormat::none;
+    int attachments = 0;              // colour attachments of a "multiple" target, else 1 or 0
+    std::vector&lt;Attachment&gt; colors;   // all colour attachments (one for a single target)
+};
+
+// Hooks the create and delete functions of the target classes (8 functions). False if the
+// game does not match or a hook fails.
+bool watch_targets();
+
+// Every live target seen since watch_targets() (targets created before it are not known).
+std::vector&lt;TargetInfo&gt; targets();
+
+// Reads one target object; false if the address is not a target of the family.
+bool read_target(std::uintptr_t address, TargetInfo&amp; out);
+
+// Hooks the update of the view size (0x1be550) so that the graphics state object is known.
+bool watch_view();
+
+// The size of the frame buffer / of the window client area as the renderer has it, and the
+// aspect ratio. False before the first update. The two sizes are equal in this build.
+bool framebuffer_size(int&amp; width, int&amp; height);
+bool window_size(int&amp; width, int&amp; height);
+float aspect();
+
+// ---- the pipeline of a view and the inputs of an upscaler ---------------------------------------
+// The members of the pipeline object, by index (offset = 8 * index): each one points at a target.
+enum class PipelineSlot : int {
+    gbuffer = 0,        // mm_resource_target_multiple: RGBA16F, RGBA8, RG16F (velocity), depth/stencil
+    scene = 1,          // RGBA16F + depth/stencil: the lit scene colour; input of the AA
+    history = 2,        // RGBA16F + depth: the output of the last frame (texture_color_last_frame)
+    aa_output = 3,      // RGBA16F + depth/stencil: output of TAA / input of FXAA; the tonemap reads it in TAA mode
+    ssao = 4,           // R8
+    ssao_blur = 5,      // R8
+    bloom_a = 6,        // RGBA16F at the size / bloom divisor
+    bloom_b = 7,
+    depth_copy = 8,     // R16F + depth/stencil, only when the pipeline flag +0xc8 is set
+    mipmapped = 0xf,
+    shadow_small = 0x10,   // 128 x 128, depth only
+    linear_depth = 0x11,   // R16F + depth/stencil, full size: handed to the scene passes
+    shadow_large = 0x12,   // 1024 x 1024 R16F
+    reflection_a = 0x16,   // 512 x 512 RGBA16F
+    reflection_b = 0x17,
+};
+
+enum class AaMode : int { none = 0, fxaa = 1, temporal = 2 };
+
+struct Pipeline {
+    std::uintptr_t address = 0;
+    AaMode aa_mode = AaMode::none;
+    bool motion_blur = false;
+    std::vector&lt;TargetInfo&gt; slots;   // indexed by PipelineSlot (missing = address 0)
+    const TargetInfo&amp; slot(PipelineSlot s) const;
+};
+
+// What a temporal upscaler reads and writes (OpenGL texture ids and sizes), taken from the pipeline.
+struct UpscalerInputs {
+    unsigned color_texture = 0;       // the lit scene colour (RGBA16F), pipeline [1]
+    unsigned velocity_texture = 0;    // G-buffer attachment 2 (RG16F)
+    unsigned depth_texture = 0;       // G-buffer depth/stencil
+    unsigned history_texture = 0;     // pipeline [2]
+    unsigned output_texture = 0;      // pipeline [3]: where the tonemap reads in TAA mode
+    unsigned output_fbo = 0;
+    int input_width = 0, input_height = 0;       // size of the scene colour
+    int output_width = 0, output_height = 0;     // size of the output target (equal in this build)
+    AaMode aa_mode = AaMode::none;
+    bool velocity_is_rg16f = false;   // the format check that tells the velocity attachment is what it should be
+};
+
+// Hooks the frame function (0x6d4de0) so that the renderer object is known.
+bool watch_renderer();
+
+// The renderer object (nullptr before the first frame after watch_renderer()).
+void* renderer();
+
+// The pipeline of a view: 0 = the main view (renderer + 0x2628), 1 = the second view (+0x2718).
+bool pipeline(int view, Pipeline&amp; out);
+
+// The inputs of an upscaler for the main view; false if the pipeline is not complete.
+bool upscaler_inputs(UpscalerInputs&amp; out);
+
+// The shader object of the renderer for a shader name ("temporal_aa"): its offset inside
+// the renderer object, or 0 when there is none.
+std::uint32_t renderer_shader_offset(const char* shader);
+
+// ---- addresses (RVA, stormworks64.exe 1.15.25) -------------------------------------------------
+inline constexpr std::uint32_t kRvaGlfwContextInit = 0x90f90;     // fills the function table of the context
+inline constexpr std::uint32_t kRvaGlfwMakeCurrent = 0x906c0;     // table + 0x240
+inline constexpr std::uint32_t kRvaGlfwSwapBuffers = 0x90740;     // table + 0x248; ends in SwapBuffers(dc)
+inline constexpr std::size_t kOffContextMakeCurrent = 0x240;
+inline constexpr std::size_t kOffContextSwapBuffers = 0x248;
+inline constexpr std::size_t kOffWindowDc = 0x270;                // window + 0x270 = the device context
+
+// Render target classes (vtable RVAs), the factories on the resource manager, and the fields.
+inline constexpr std::uint32_t kVtableTargetBase = 0xb11770;
+inline constexpr std::uint32_t kVtableTarget = 0xb0a778;
+inline constexpr std::uint32_t kVtableTargetMultiple = 0xb5c4d8;
+inline constexpr std::uint32_t kVtableTargetMultisample = 0xb0cd40;
+inline constexpr std::uint32_t kVtableTargetMipmapped = 0xb06980;
+inline constexpr std::uint32_t kRvaCreateTarget = 0x1b2630;            // (manager, w, h, colour, depth, name)
+inline constexpr std::uint32_t kRvaCreateTargetMultiple = 0x1b2940;
+inline constexpr std::uint32_t kRvaCreateTargetMultisample = 0x1b2ad0;
+inline constexpr std::uint32_t kRvaCreateTargetMipmapped = 0x1b27c0;
+inline constexpr std::uint32_t kRvaTargetCreateGl[4] = {0x1ae530, 0x1aec00, 0x1af2a0, 0x1af6a0};   // slot 1
+inline constexpr std::uint32_t kRvaTargetDeleteGl[4] = {0x1ae680, 0x1aedd0, 0x1af340, 0x1af7d0};   // slot 2
+inline constexpr std::uint32_t kRvaTargetBlit = 0x1ae700;              // slot 4 of mm_resource_target
+inline constexpr std::uint32_t kRvaRenderTargetsCreate = 0x66e3a0;     // creates the targets of one view
+inline constexpr std::uint32_t kRvaRenderTargetsCreateB = 0x66ec40;
+inline constexpr std::uint32_t kRvaUpdateViewportSize = 0x1be550;      // GetClientRect -&gt; graphics state
+inline constexpr std::size_t kOffTargetMemory = 0xc;
+inline constexpr std::size_t kOffTargetFbo = 0x28;
+inline constexpr std::size_t kOffTargetWidth = 0x2c;
+inline constexpr std::size_t kOffTargetHeight = 0x30;
+inline constexpr std::size_t kOffTargetColorTexture = 0x48;
+inline constexpr std::size_t kOffTargetColorFormat = 0x4c;
+inline constexpr std::size_t kOffTargetDepthTexture = 0x50;
+inline constexpr std::size_t kOffTargetDepthFormat = 0x54;
+inline constexpr std::size_t kOffTargetMultipleColors = 0x48;          // data pointer of the ring (0xc bytes each)
+inline constexpr std::size_t kOffTargetMultipleCapacity = 0x50;
+inline constexpr std::size_t kOffTargetMultipleHead = 0x54;
+inline constexpr std::size_t kOffTargetMultipleCount = 0x58;
+inline constexpr std::size_t kOffTargetMultipleDepthTexture = 0x60;
+inline constexpr std::size_t kOffTargetMultipleDepthFormat = 0x68;
+inline constexpr std::size_t kOffGraphicsFramebufferWidth = 0x8f0;
+inline constexpr std::size_t kOffGraphicsFramebufferHeight = 0x8f4;
+inline constexpr std::size_t kOffGraphicsWindowWidth = 0x8f8;
+inline constexpr std::size_t kOffGraphicsWindowHeight = 0x8fc;
+inline constexpr std::size_t kOffGraphicsAspect = 0x900;
+
+// The pipeline and the anti-aliasing passes.
+inline constexpr std::size_t kOffRendererPipelineMain = 0x2628;        // the pipeline object inside the renderer
+inline constexpr std::size_t kOffRendererPipelineSecond = 0x2718;
+inline constexpr std::size_t kOffPipelineMotionBlur = 0xc9;            // byte: motion blur on
+inline constexpr std::size_t kOffPipelineAaMode = 0xcc;                // int: 1 = FXAA, 2 = temporal AA
+inline constexpr std::size_t kOffPipelineBloomDivisor = 0xe4;
+inline constexpr std::uint32_t kRvaTaaSetup = 0x68fcb0;                // (shader, camera): program, sampler units, matrix, rand_offset
+inline constexpr std::uint32_t kRvaTaaDraw = 0x68fde0;                 // (shader, quad, colour target, G-buffer, history target)
+inline constexpr std::uint32_t kRvaTonemapSetup = 0x68e670;
+inline constexpr std::uint32_t kRvaTonemapDraw = 0x68e8b0;
+inline constexpr std::uint32_t kRvaFxaaDraw = 0x68f8c0;
+inline constexpr std::uint32_t kRvaMotionBlurDraw = 0x6902d0;
+inline constexpr std::uint32_t kRvaBindScreen = 0x6ddba0;              // binds framebuffer 0 and sets the viewport to the window size
+inline constexpr std::uint32_t kRvaTargetAddColor = 0x1aee70;          // mm_resource_target_multiple::add_color_attachment(format)
+inline constexpr std::size_t kOffRendererLight = 0x17b8;               // the `light` shader object (deferred composition)
+
+inline constexpr std::uint32_t kRvaRendererCtor = 0x6d16c0;       // builds the shader objects (4297 bytes)
+inline constexpr std::uint32_t kRvaFrameRender = 0x6d4de0;         // the frame: passes in code order (36279 bytes)
+inline constexpr std::uint32_t kRvaFramebufferGroup = 0x1adee0;    // the render target helpers 0x1adee0..0x1af800
+inline constexpr std::uint32_t kRvaFramebufferBlit1 = 0x1ae700;    // glBlitFramebuffer
+inline constexpr std::uint32_t kRvaFramebufferBlit2 = 0x1aeef0;
+inline constexpr std::uint32_t kRvaFramebufferBlit3 = 0x1af800;
+
+// Offsets of the post-processing shader objects inside the renderer object.
+inline constexpr std::size_t kOffRendererTonemap = 0x1488;
+inline constexpr std::size_t kOffRendererSsao = 0x1598;
+inline constexpr std::size_t kOffRendererSsaoBlur = 0x1658;
+inline constexpr std::size_t kOffRendererFxaa = 0x16b8;
+inline constexpr std::size_t kOffRendererTemporalAa = 0x16f0;
+inline constexpr std::size_t kOffRendererMotionBlur = 0x1760;
+inline constexpr std::size_t kOffRendererDownsampleDepth = 0x1e60;
+
+}  // namespace sw::render</code></pre></details>
+      <h3 id="h-runtime"><code>sw/runtime.hpp</code></h3>
+      <p>The connection to the game: checks, reading and writing memory, hooks by name, classes and vtables.</p>
+      <details><summary>Show the header (175 lines)</summary><pre><code>#include "sw/active_map.hpp"
+#include "sw/hook.hpp"
+
+#include &lt;atomic&gt;
+#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+#include &lt;cstring&gt;
+#include &lt;mutex&gt;
+#include &lt;string&gt;
+#include &lt;string_view&gt;
+
+
+namespace sw {
+
+
+struct RuntimeStatus {
+
+    bool attached = false;
+
+    bool hash_checked = false;
+
+    bool hash_ok = false;
+
+    bool signatures_checked = false;
+
+    bool signatures_ok = false;
+
+    std::uintptr_t base = 0;
+
+    std::wstring image_path;
+
+    std::size_t signature_matches = 0;
+
+    std::size_t signature_total = 0;
+
+    std::string error;
+
+};
+
+
+class Runtime {
+
+public:
+
+    static Runtime&amp; get();
+
+
+    Runtime(const Runtime&amp;) = delete;
+
+    Runtime&amp; operator=(const Runtime&amp;) = delete;
+
+
+
+    bool attach(bool check_hash = true, bool check_signatures = true);
+
+    void detach();
+
+
+    bool attached() const;
+
+    RuntimeStatus status() const;
+
+
+    std::uintptr_t base() const;
+
+    const void* at_rva(std::uint32_t rva) const;
+
+
+    std::uintptr_t resolve(std::string_view api, bool verify = false);
+
+
+    bool readable(const void* address, std::size_t size) const;
+
+
+    template &lt;typename T&gt;
+
+    bool read_rva(std::uint32_t rva, T&amp; out) const {
+
+        const void* p = at_rva(rva);
+
+        if (!p || !readable(p, sizeof(T))) return false;
+
+        std::memcpy(&amp;out, p, sizeof(T));
+
+        return true;
+
+    }
+
+
+    bool write_bytes(void* address, const void* data, std::size_t size);
+
+
+    template &lt;typename T&gt;
+
+    bool write_rva(std::uint32_t rva, const T&amp; value) {
+
+        return write_bytes(const_cast&lt;void*&gt;(at_rva(rva)), &amp;value, sizeof(T));
+
+    }
+
+
+    std::uintptr_t vtable_of(std::uintptr_t object) const;
+
+    std::uintptr_t virtual_slot(std::uintptr_t object, std::uint32_t index) const;
+
+
+    HookStatus hook_ctor(std::string_view cls, HookCallback callback, void* user,
+
+                          std::string&amp; error);
+
+
+    bool remove_ctor(std::string_view cls, HookCallback callback, void* user,
+
+                     std::string&amp; error);
+
+
+
+    HookStatus hook_api(std::string_view api, HookCallback callback, void* user,
+
+                        std::string&amp; error);
+
+
+
+    HookStatus hook_rva(std::uint32_t rva, HookCallback callback, void* user,
+
+                        std::string&amp; error);
+
+
+    HookStatus hook_method(std::string_view cls, std::uint32_t slot, HookCallback callback,
+
+                           void* user, std::string&amp; error);
+
+
+    bool unhook(std::uintptr_t address, HookCallback callback, void* user, std::string&amp; error);
+
+
+    std::uintptr_t method_address(std::string_view cls, std::uint32_t slot) const;
+
+
+    // Is there a function start of the main module at this address?
+
+    bool is_function_start(std::uintptr_t address) const;
+
+
+
+    std::string_view class_of(std::uintptr_t object) const;
+
+
+    // true if the vptr of the object points to the vtable of this class.
+
+    bool is_instance_of(std::uintptr_t object, std::string_view cls) const;
+
+
+    // Address of the vtable of a class in the running game (0 if unknown).
+
+    std::uintptr_t class_vtable(std::string_view cls) const;
+
+
+private:
+
+    Runtime() = default;
+
+    void set_error(std::string message);
+
+
+    mutable std::mutex mutex_;
+
+    RuntimeStatus status_;
+
+    std::atomic&lt;std::uintptr_t&gt; module_base_{0};
+
+};
+
+
+}  // namespace sw</code></pre></details>
+      <h3 id="h-settings"><code>sw/settings.hpp</code></h3>
+      <p>The game settings.</p>
+      <details><summary>Show the header (37 lines)</summary><pre><code>#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;string_view&gt;
+#include &lt;vector&gt;
+
+namespace sw::settings {
+
+// A setting of the server: a name, the offset in the state and the type.
+struct Variable {
+    std::string_view name;   // "infinite_fuel"
+    std::uint32_t offset;    // the offset in the state of the server
+    bool is_bool;            // true = a boolean, false = a number
+};
+
+// The names of all settings.
+std::vector&lt;std::string&gt; names();
+
+// The setting of this name, if the map knows it.
+const Variable* find(std::string_view name);
+
+// The state of the server is reachable (the game matches the mapping).
+bool ready();
+
+// The value of a boolean setting.
+bool get_bool(std::string_view name, bool&amp; out);
+
+// The value of a number setting.
+bool get_number(std::string_view name, double&amp; out);
+
+// Writes a boolean setting. False if the name is unknown, if the setting is
+// a number or if the state is not reachable.
+bool set_bool(std::string_view name, bool value);
+
+// Writes a number setting.
+bool set_number(std::string_view name, double value);
+
+}  // namespace sw::settings</code></pre></details>
+      <h3 id="h-signature"><code>sw/signature.hpp</code></h3>
+      <p>Byte signatures and the check of the game build.</p>
+      <details><summary>Show the header (32 lines)</summary><pre><code>#include &lt;cstddef&gt;
+
+#include &lt;cstdint&gt;
+
+#include &lt;optional&gt;
+
+#include &lt;string_view&gt;
+
+#include &lt;vector&gt;
+
+
+namespace sw {
+
+
+struct BytePattern {
+
+    std::vector&lt;std::uint8_t&gt; bytes;
+
+    std::vector&lt;std::uint8_t&gt; mask;  // 0 = placeholder, 1 = must match
+
+
+    static std::optional&lt;BytePattern&gt; parse(std::string_view text);
+
+
+    bool matches(const std::uint8_t* data, std::size_t size) const;
+
+    std::size_t size() const { return bytes.size(); }
+
+};
+
+
+}  // namespace sw</code></pre></details>
+      <h3 id="h-start_tiles"><code>sw/start_tiles.hpp</code></h3>
+      <p>Your own start card (base) in the menu.</p>
+      <details><summary>Show the header (129 lines)</summary><pre><code>#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;string_view&gt;
+#include &lt;vector&gt;
+
+namespace sw::start_tiles {
+
+
+inline constexpr int kOptionCount = 3;
+
+
+inline constexpr std::uint32_t kRvaMenuVtable = 0xb78020;
+inline constexpr std::uint32_t kRvaMenuTick = 0x6ecac0;       // slot 3, every frame
+inline constexpr std::size_t kOffMenuDescription[kOptionCount] = {0x160, 0x150, 0x140};
+inline constexpr std::size_t kOffMenuSelector = 0xa8;          // the selector of the start
+inline constexpr std::size_t kOffMenuMultiplayerFlag = 0x139;  // byte: use the multiplayer base
+
+inline constexpr std::uint32_t kLocDescription[kOptionCount] = {0x1c8, 0x1c9, 0x1ca};
+inline constexpr std::uint32_t kLocLocationTitle = 0x388;      // title of the location pane
+
+inline constexpr std::uint32_t kRvaStartStruct[kOptionCount] = {0xceedf0, 0xcf4f80, 0xcf31e0};
+inline constexpr std::uint32_t kRvaStartStructMultiplayer = 0xceee60;  // replaces the third
+inline constexpr std::size_t kOffTile = 0x10;
+inline constexpr std::size_t kOffAridTile = 0x20;
+
+inline constexpr const char* kDefaultTile[kOptionCount] = {
+    "data/tiles/island12.xml", "data/tiles/island12.xml", "data/tiles/island15.xml"};
+inline constexpr const char* kDefaultAridTile[kOptionCount] = {
+    "data/tiles/arid_island_5_14.xml", "data/tiles/arid_island_5_14.xml",
+    "data/tiles/arid_island_26_14.xml"};
+inline constexpr const char* kMultiplayerTile = "data/tiles/island_43_multiplayer_base.xml";
+
+inline constexpr std::uint32_t kRvaBuildUi = 0x83a7b0;      // main_menu_state::build_ui
+inline constexpr std::uint32_t kRvaAddBase = 0x847c40;      // (state, ctx, title*, key*, description*)
+inline constexpr std::size_t kOffStateInterface = 0xbdbb0;  // state -&gt; the menu interface
+inline constexpr std::size_t kOffInterfaceNewGame = 0x78;   // interface -&gt; new game menu
+inline constexpr std::size_t kOffInterfaceLocations = 0x80; // interface -&gt; location selector
+inline constexpr std::size_t kOffMenuLocations = 0xc0;      // new game menu: ring of descriptors
+// The ring: {pointer, capacity +8, start +0xc, count +0x10}, entries are
+// pointers to a descriptor of 0x40 bytes:
+inline constexpr std::size_t kOffDescTile = 0x00;           // mm_string "data/tiles/&lt;key&gt;.xml"
+inline constexpr std::size_t kOffDescGeometry = 0x10;       // mm_string "data/tiles/&lt;key&gt;_map_geometry.bin"
+inline constexpr std::size_t kOffDescTitle = 0x20;          // mm_string, the title of the card
+inline constexpr std::size_t kOffDescDescription = 0x30;    // mm_string, the text under the picture
+inline constexpr std::size_t kDescSize = 0x40;
+
+
+struct Base {
+    std::string key;          // the tile file without folder and extension
+    std::string title;
+    std::string description;
+    // The key of a tile whose _map_geometry.bin is copied when yours is
+    // missing (the picture of the card). Empty = "moon_surface_0_0".
+    std::string geometry_template;
+
+    // Where the tile is put into the world when the player starts a game with
+    // this card (see "the spawn" below). By default the mod searches the
+    // nearest free grid cell around the origin; set these to choose the cell.
+    bool fixed_cell = false;
+    int grid_x = 0;
+    int grid_y = 0;
+};
+
+// What the menu has now.
+struct BaseInfo {
+    std::string tile;         // data/tiles/&lt;key&gt;.xml
+    std::string geometry;     // data/tiles/&lt;key&gt;_map_geometry.bin
+    std::string title;
+    std::string description;
+};
+
+
+// One start of the new game menu as it is now.
+struct Option {
+    int index = 0;
+    std::string description;  // empty while the menu is closed
+    std::string tile;
+    std::string arid_tile;
+};
+
+// Your own start.
+struct Custom {
+    std::string title;        // written in front of the description
+    std::string description;
+    std::string tile;         // empty = keep the tile of the game
+    std::string arid_tile;    // empty = keep the arid tile of the game
+};
+
+
+// Hooks the menu. False if the game does not match the mapping or the hook
+// fails.
+bool watch();
+
+// Adds a card to the page "Choose base". It is made when the page is built
+// (the game builds it when the main menu opens; open the menu again after the
+// mod started). False and an error if the tile file is missing, no picture
+// can be made for it, or a text is too long. Needs watch().
+bool add_base(const Base&amp; base, std::string&amp; error);
+
+// Forgets the cards that are waiting (a card already in the menu stays).
+void remove_bases();
+
+// The cards that the menu has now (empty while it was not built).
+std::vector&lt;BaseInfo&gt; bases();
+
+// What the mod did at the last start of a game: the tile of the chosen card
+// and where it was put (empty if the chosen start is not one of the mod's
+// cards).
+std::string last_start();
+
+// The new game menu is open (it was seen in its last frame).
+bool menu_open();
+
+// The three starts as they are now.
+std::vector&lt;Option&gt; options();
+
+// Replaces the start `option` (0..2) with your own. The description is
+// written into the menu while it is open (and again whenever it is opened).
+bool define(int option, const Custom&amp; custom);
+
+// The single parts.
+bool set_description(int option, std::string_view text);
+bool set_tile(int option, std::string_view file);
+bool set_arid_tile(int option, std::string_view file);
+
+// Puts one start back (option 0..2) or all of them (-1).
+void clear(int option = -1);
+
+}  // namespace sw::start_tiles</code></pre></details>
+      <h3 id="h-textures"><code>sw/textures.hpp</code></h3>
+      <p>Read, change and write .txtr files.</p>
+      <details><summary>Show the header (121 lines)</summary><pre><code>#include &lt;array&gt;
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::gfx {
+
+
+inline constexpr const char* kFlagAtlasPath = "graphics/flags.txtr";       // below rom/
+inline constexpr const char* kFlagShaderVertex = "graphics/shaders/flags.glslv";
+inline constexpr const char* kFlagShaderFragment = "graphics/shaders/flags.glslf";
+inline constexpr const char* kFlagDefinitions[3] = {
+    "data/definitions/flag_small.xml", "data/definitions/flag_medium.xml",
+    "data/definitions/flag_large.xml"};
+inline constexpr const char* kFlagPoleMeshes[3] = {
+    "meshes/component_flagpole_small.mesh", "meshes/component_flagpole_medium.mesh",
+    "meshes/component_flagpole_large.mesh"};
+inline constexpr int kFlagComponentType = 65;   // type="65" in the three definitions
+
+// The atlas: 1024 x 1024, the top half is empty, the flags are in blocks below.
+inline constexpr int kFlagAtlasSize = 1024;
+inline constexpr int kFlagAtlasEmptyRows = 512;   // y 0..511 is free
+inline constexpr int kFlagCellWidth = 64;         // a flag of the main block
+inline constexpr int kFlagCellHeight = 32;
+
+inline constexpr std::uint32_t kRvaTextureLoad = 0x20fa80;
+inline constexpr std::uint32_t kRvaGraphicsAssetsInit = 0x6b20c0;
+inline constexpr std::size_t kOffFlagTexture = 0x50;
+
+
+inline constexpr std::uint32_t kVtableFlagComponent = 0xafd938;      // c_scene_vehicle_component_flag
+inline constexpr std::size_t kFlagComponentSize = 0x2c8;
+inline constexpr std::uint32_t kVtableMaterialFlag = 0xb09540;       // c_material_flag
+inline constexpr std::uint32_t kVtableMaterialFlagClip = 0xb4def0;   // c_material_flag_clip
+inline constexpr std::uint32_t kVtablePropertyFlag = 0xb724c0;       // c_properties_element_flag
+inline constexpr std::uint32_t kVtablePropertyFlag64 = 0xafb9b0;     // c_properties_element_flag_64
+inline constexpr std::uint32_t kVtableUiPropertyFlag = 0xb78c88;     // c_ui_properties_element_flag
+inline constexpr std::uint32_t kVtableUiPropertyFlag128 = 0xb7ad00;  // c_ui_properties_element_flag_128
+
+// The file format.
+inline constexpr std::size_t kTxtrHeaderSize = 23;
+inline constexpr std::size_t kTxtrTrailerSize = 2;
+inline constexpr std::uint32_t kTxtrVersion = 3;
+inline constexpr std::uint32_t kTxtrFormatRgba = 2;
+
+
+// A picture without a file format: RGBA, row by row from the top.
+struct Image {
+    int width = 0;
+    int height = 0;
+    std::vector&lt;std::uint8_t&gt; rgba;   // width * height * 4
+};
+
+// A texture file that was read. The header and the trailer are kept as they are,
+// so write() produces a file the game can read.
+struct Texture {
+    int width = 0;
+    int height = 0;
+    std::vector&lt;std::uint8_t&gt; rgba;
+    std::array&lt;std::uint8_t, kTxtrHeaderSize&gt; header{};
+    std::array&lt;std::uint8_t, kTxtrTrailerSize&gt; trailer{};
+    std::string source;   // the path it was read from
+};
+
+// Reads a TXTR file of version 3, format 2 (RGBA, square).
+bool read(const std::string&amp; path, Texture&amp; out, std::string&amp; error);
+
+// Writes a NEW file. Refuses the path the texture was read from.
+bool write(const std::string&amp; path, const Texture&amp; texture, std::string&amp; error);
+
+// Is the rectangle empty (every pixel has alpha 0)?
+bool is_empty(const Texture&amp; texture, int x, int y, int width, int height);
+
+// The first empty place of that size, searched row by row in steps of the
+// size. False if there is none.
+bool find_free(const Texture&amp; texture, int width, int height, int&amp; x, int&amp; y);
+
+// The empty places of that size (the grid of cells width x height).
+std::vector&lt;std::pair&lt;int, int&gt;&gt; free_cells(const Texture&amp; texture, int width, int height);
+
+// Puts a picture into the texture. Refuses (false and an error) if it does not
+// fit or if one pixel of the place is not empty: nothing that is there is
+// replaced. Fully transparent pixels of the picture are written with alpha 1,
+// because alpha 0 means "empty".
+bool put(Texture&amp; texture, const Image&amp; image, int x, int y, std::string&amp; error);
+
+// Cuts a rectangle out of a texture (for example one flag).
+bool crop(const Texture&amp; texture, int x, int y, int width, int height, Image&amp; out);
+
+struct TextureFile {
+    std::uint32_t format = 0;
+    bool flag = false;
+    int width = 0;
+    int height = 0;
+    std::vector&lt;std::vector&lt;std::uint8_t&gt;&gt; levels;   // as stored
+    std::array&lt;std::uint8_t, 2&gt; trailer{};
+    std::string source;
+};
+
+inline constexpr std::uint32_t kTxtrFormatBc3 = 3;
+
+// Reads any TXTR file of version 3 (all levels). Checks that the levels use the
+// whole file.
+bool read_file(const std::string&amp; path, TextureFile&amp; out, std::string&amp; error);
+
+// Writes a NEW file; refuses the file that was read.
+bool write_file(const std::string&amp; path, const TextureFile&amp; file, std::string&amp; error);
+
+// Decodes one level (0 = the largest) to RGBA. Format 2 is copied, format 3 is
+// decoded as BC3. Other formats are refused.
+bool decode(const TextureFile&amp; file, int level, Image&amp; out, std::string&amp; error);
+
+// BC3 / DXT5 to RGBA (width and height in pixels).
+bool decode_bc3(const std::vector&lt;std::uint8_t&gt;&amp; data, int width, int height, Image&amp; out);
+
+bool encode_bc3(const Image&amp; image, std::vector&lt;std::uint8_t&gt;&amp; out);
+
+
+bool make_texture(const Image&amp; image, std::uint32_t format, TextureFile&amp; out, std::string&amp; error);
+
+}  // namespace sw::gfx</code></pre></details>
+      <h3 id="h-tiles"><code>sw/tiles.hpp</code></h3>
+      <p>The tile system: definitions, cells, queueing, events.</p>
+      <details><summary>Show the header (127 lines)</summary><pre><code>#include &lt;string&gt;
+#include &lt;string_view&gt;
+#include &lt;vector&gt;
+
+namespace sw::tiles {
+
+// A group of the tile XML. The game reads 23 groups out of every tile file;
+// each group becomes a list in the definition.
+struct Section {
+    std::string_view group;    // the XML element that holds the list ("meshes")
+    std::string_view element;  // the XML element of one entry ("mesh"), may be the same
+    unsigned object_size;      // bytes the parser allocates per entry
+    unsigned definition_offset;  // the ring list of this group inside the definition
+    std::string_view cls;      // the class of the objects (proven by the RTTI)
+    std::string_view placement;  // what the object does when the game puts it into the world (see above)
+};
+
+// The groups of the tile XML, in the order the game parses them.
+const std::vector&lt;Section&gt;&amp; sections();
+
+// The attributes of the root element &lt;definition&gt; that the game reads.
+struct Attribute {
+    std::string_view xml;
+    std::string_view type;     // bool, int, float
+    unsigned definition_offset;
+    unsigned cell_offset;      // where the cell keeps its copy (0 = none)
+};
+const std::vector&lt;Attribute&gt;&amp; attributes();
+
+// What the game keeps for a loaded definition.
+struct Definition {
+    bool found = false;
+    bool is_island = false;
+    bool is_volcanic = false;
+    float sea_floor_height = 0.0f;
+    int tile_type = 0;         // the attribute tile_type
+    bool purchasable = false;
+    int purchase_cost = 0;
+};
+
+// A cell of the level.
+struct Cell {
+    int gx = 0;
+    int gy = 0;
+    std::string name;          // the file the cell was made from
+    bool is_island = false;
+    bool is_volcanic = false;
+    float sea_floor_height = 0.0f;
+    int tile_type = 0;
+    bool purchasable = false;
+    int purchase_cost = 0;
+    int state = 0;             // where the streaming has brought the cell (state_name)
+    int requested = 0;         // where the streaming wants it to go
+};
+
+
+const char* state_name(int state);
+
+// The moments of the tile system that a mod can react to.
+enum class Event {
+    definitions_loaded,   // the game has read all tile files (once per start)
+    world_created,        // the game builds a world and places its tiles
+    tiles_placed,         // directly after the game placed its tiles (place() runs here)
+    cell_created,         // a cell was made; EventInfo has its grid position
+    stream_update,        // every frame: the streaming looks at the cells
+    tiles_placed_late,    // after tiles_placed AND after the tiles that mods queued in it were placed (cells() has them): decide here whether a tile is missing
+};
+
+struct EventInfo {
+    Event event;
+    int gx = 0;           // only for cell_created
+    int gy = 0;
+};
+
+using EventCallback = void (*)(const EventInfo&amp; info, void* user);
+
+// Runs the callback at the moment. The callback is on the thread of the game:
+// keep it short. Needs no watch().
+bool on(Event event, EventCallback callback, void* user, std::string&amp; error);
+bool off(Event event, EventCallback callback, void* user);
+
+// The cells of the level that exist (scans the grid of the level).
+std::vector&lt;Cell&gt; cells();
+
+// The cells inside a rectangle of grid cells (both corners included).
+std::vector&lt;Cell&gt; cells_in(int min_gx, int min_gy, int max_gx, int max_gy);
+
+// The cell and its eight neighbours are free: the test that place() makes.
+bool is_free(int gx, int gy);
+
+// Starts watching for the world and for the moment in which tiles can be
+// placed. False if the game functions do not match or a hook fails.
+bool watch();
+
+// A world has been seen.
+bool ready();
+
+// The definition of a tile file ("island12.xml" or "data/tiles/island12.xml").
+Definition definition(std::string_view file);
+
+// The cell at a grid cell, if there is one.
+bool cell_at(int gx, int gy, Cell&amp; out);
+
+// Queues a tile for placing when the game builds its next world. Refuses a
+// grid cell outside the level, a tile file the game does not know, and a
+// cell that is already taken. The refusal is reported at the moment of
+// placing (last_report()). Returns false only if watch() was not called.
+bool place(std::string_view file, int gx, int gy, std::string&amp; error);
+
+// What happened at the last moment of placing: one line per tile.
+std::vector&lt;std::string&gt; last_report();
+
+bool place_random(std::string_view file, int center_gx, int center_gy, int min_distance,
+                  int max_distance, std::string&amp; error);
+
+// The seed of the world that is being built (the number the player typed at
+// the new game, or the one of the save). Valid after the game has placed its
+// tiles (in the event tiles_placed); 0 before that.
+int world_seed();
+
+// The number of tiles that wait for the next world.
+std::size_t pending();
+
+// Forgets the queue (the skeleton calls this on unload).
+void clear();
+
+}  // namespace sw::tiles</code></pre></details>
+      <h3 id="h-trees"><code>sw/trees.hpp</code></h3>
+      <p>The kind of tree per tile or chunk.</p>
+      <details><summary>Show the header (68 lines)</summary><pre><code>#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+
+namespace sw::trees {
+
+enum class Kind : int { fir = 0, burnt = 1, snow = 2 };
+
+inline constexpr std::uint32_t kRvaDrawFrame = 0x6d4de0;      // renderer_draw_frame
+inline constexpr std::uint32_t kRvaSiteFoliage = 0x6d701c;    // the first place (shader object at renderer + 0x6c0)
+inline constexpr std::uint32_t kRvaSiteSecond = 0x6d7848;     // the second place (+ 0x760)
+inline constexpr std::size_t kSiteBytes = 35;                 // movsxd .. add rax, 0x1c0
+inline constexpr std::uint32_t kRvaMeshLibraryLoader = 0x6b20c0;
+inline constexpr std::size_t kOffElementKind = 0xf8;          // int
+inline constexpr std::size_t kOffElementLod = 0xfc;           // int
+inline constexpr std::size_t kOffElementChunkX = 0x08;        // int, taken to be the chunk index (500 m)
+inline constexpr std::size_t kOffElementChunkZ = 0x0c;        // int
+inline constexpr std::uintptr_t kLibrarySlotsOffset = 0x1c0;  // the nine mesh slots, 8 bytes each
+
+// The slot of the game's formula, relative to the library: 0x1c0 + (kind * 3 + lod) * 8. lod 0..2.
+constexpr std::uintptr_t slot_offset(Kind kind, int lod) {
+    return kLibrarySlotsOffset + (static_cast&lt;std::uintptr_t&gt;(kind) * 3 + static_cast&lt;std::uintptr_t&gt;(lod)) * 8;
+}
+
+// The tile (grid cell) that holds a chunk index; floor((c + 1) / 2), also for negative numbers.
+constexpr int tile_of_chunk(int chunk) {
+    const int n = chunk + 1;
+    return n &gt;= 0 ? n / 2 : -((-n + 1) / 2);
+}
+
+// Sets the kind of a tile / a chunk. False for a kind that is not one of the three.
+bool set_tile(int gx, int gz, Kind kind);
+bool set_chunk(int cx, int cz, Kind kind);
+// Removes a rule / all rules.
+bool clear_tile(int gx, int gz);
+bool clear_chunk(int cx, int cz);
+void clear_rules();
+std::size_t rule_count();
+
+// The kind a chunk is drawn with, given the kind the game asks for. This is what the stub calls.
+Kind resolve(Kind original, int cx, int cz);
+
+// Checks the 35 bytes at both places (and the instruction after them), then patches both. False when the game
+// does not match, the runtime is not attached, a stub cannot be placed within 2 GB of the image, or this is
+// the 32 bit build. Calling it again after a success returns true.
+bool watch();
+// Puts the original bytes back. The stubs stay allocated, so a draw that is just inside one can finish.
+void unwatch();
+bool active();
+
+struct ChunkSeen {
+    int cx = 0, cz = 0;
+    int kind = 0, lod = 0;     // as the game asked
+    int drawn_kind = 0;        // as it was drawn
+};
+// Copies up to max of the first distinct chunks that were drawn (at most 64); returns how many.
+std::size_t chunk_seen(ChunkSeen* out, std::size_t max);
+
+// The first draw elements the stub saw (each element once, by address): the first 0x100 bytes as 32 quadwords. The ints at
+// +0x08 / +0x0c turned out to be 0 for every element (a player's log), so they are NOT the chunk index; this is for finding where
+// the position of the chunk is stored.
+struct ElementSample {
+    std::uintptr_t address = 0;
+    std::int32_t kind = 0, lod = 0;
+    std::uint64_t q[32] = {};
+};
+std::size_t element_samples(ElementSample* out, std::size_t max);   // at most 24
+
+}  // namespace sw::trees</code></pre></details>
+      <h3 id="h-ui"><code>sw/ui.hpp</code></h3>
+      <p>Text and buttons in the main menu by name.</p>
+      <details><summary>Show the header (45 lines)</summary><pre><code>#include &lt;cstddef&gt;
+
+namespace sw::ui {
+
+// Where the element sits. x and y are an offset from this point.
+enum class Anchor {
+    top_left = 0,
+    top_center = 1,
+    top_right = 2,
+    middle_left = 3,
+    center = 4,
+    middle_right = 5,
+    bottom_left = 6,
+    bottom_center = 7,
+    bottom_right = 8,
+};
+
+// Called when the player releases the button.
+using ClickCallback = void (*)(void* user);
+
+namespace main_menu {
+
+// Shows a TEXT in the main menu: a real text element of the game (no button, no
+// icon, nothing to click). width and height are the box of the text in menu
+// units, color is ARGB (the default is the grey of the game's own texts).
+// Returns false if the layer cannot work (32 bit, or the game functions do not
+// match).
+bool add_text(const char* text, Anchor anchor = Anchor::bottom_right, float x = 0.0f,
+              float y = 0.04f, float width = 0.8f, float height = 0.14f,
+              unsigned color = 0xFFE6E6E6u);
+
+// Shows a button. The callback may be null.
+bool add_button(const char* text, const char* icon, Anchor anchor, ClickCallback callback,
+                void* user, float x = 0.0f, float y = 0.0f);
+
+// Removes everything this mod added to the menu (the elements disappear
+// with the next menu, the callbacks are released at once). The skeleton
+// of the mod calls this on unload.
+void clear();
+
+// The number of elements that are registered (not necessarily built yet).
+std::size_t count();
+
+}  // namespace main_menu
+}  // namespace sw::ui</code></pre></details>
+      <h3 id="h-vehicle"><code>sw/vehicle.hpp</code></h3>
+      <p>Spawned vehicles and their components (read only).</p>
+      <details><summary>Show the header (66 lines)</summary><pre><code>#include &lt;cstddef&gt;
+#include &lt;cstdint&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::vehicle {
+
+enum class Kind { seat, button, sign, dial, tank, battery, hopper, weapon, rope_hook };
+
+const char* kind_name(Kind kind);           // "button", ...
+const char* kind_lua_api(Kind kind);        // "server.getVehicleButton", ...
+bool kind_from_name(const char* name, Kind&amp; out);
+
+// Starts watching. False if the game functions do not match the mapping or a hook cannot be set.
+bool watch();
+// A world was seen and its rings pass the checks.
+bool ready();
+// The world object (address), 0 when not ready. For diagnostics only.
+std::uintptr_t world_address();
+
+struct Info {
+    int id = 0;
+    int group_id = 0;
+    std::string name;
+    double matrix[16] = {};      // record+0x10, the matrix the Lua API returns (position = elements 12..14)
+    double x = 0, y = 0, z = 0;
+    bool editable = false;
+    bool invulnerable = false;
+    bool has_state = false;      // the record points to a state record
+    std::uint32_t state = 0;     // state record +0x10 (5 = ready)
+    int bodies = 0;              // the number of bodies of the scene vehicle
+    bool simulating = false;     // the expression of getVehicleData: state record, state == 5, bodies &gt; 0, flag == 0
+};
+
+std::size_t count();                       // vehicles in the record ring (0 when not ready)
+std::vector&lt;int&gt; ids();
+bool find(int id, Info&amp; out);
+std::vector&lt;Info&gt; list();
+bool position(int id, double&amp; x, double&amp; y, double&amp; z);
+std::vector&lt;int&gt; group_members(int group_id);
+// the id of the first vehicle with this exact name, -1 if none
+int find_by_name(const std::string&amp; name);
+
+struct Component {
+    Kind kind = Kind::sign;
+    std::uint32_t key = 0;       // the key of the ring entry
+    std::string name;
+    std::string class_name;      // RTTI class without the c_scene_vehicle_component_ prefix
+    int x = 0, y = 0, z = 0;     // grid position
+    std::uintptr_t address = 0;  // the component object (valid while the vehicle lives)
+};
+
+std::vector&lt;Component&gt; components(int vehicle_id, Kind kind);
+bool find_component(int vehicle_id, Kind kind, const std::string&amp; name, Component&amp; out);
+
+// Typed values (two independent sites each).
+struct ButtonValues { float value = 0, value2 = 0; };
+bool button_values(int vehicle_id, const std::string&amp; name, ButtonValues&amp; out);
+bool battery_charge_raw(int vehicle_id, const std::string&amp; name, float&amp; out);   // the stored float; the Lua value is normalised by the capacity
+bool tank_capacity_raw(int vehicle_id, const std::string&amp; name, float&amp; out);    // the Lua capacity is raw * 10
+
+// Experiments: read bytes of a component (offset &lt; 0x1700), no meaning is promised.
+bool raw_u32(const Component&amp; c, std::uint32_t offset, std::uint32_t&amp; out);
+bool raw_f32(const Component&amp; c, std::uint32_t offset, float&amp; out);
+
+}  // namespace sw::vehicle</code></pre></details>
+      <h3 id="h-vfs"><code>sw/vfs.hpp</code></h3>
+      <p>Virtual file system: mod folders appear in rom without writing anything.</p>
+      <details><summary>Show the header (35 lines)</summary><pre><code>#include &lt;cstddef&gt;
+#include &lt;filesystem&gt;
+#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::vfs {
+
+namespace fs = std::filesystem;
+
+struct Config {
+    fs::path rom;                    // &lt;game&gt;\rom
+    std::vector&lt;fs::path&gt; roots;     // the mod folders; the LAST one wins
+};
+
+// Replaces the import table entries of the main module (or of `module` when given, an HMODULE) and activates the mapping.
+// Calling it again replaces the configuration. false with an error text when no entry could be patched.
+bool install(const Config&amp; config, std::string&amp; error, void* module = nullptr);
+
+// Puts the original entries back. The handles of listings that are still open stay valid.
+void uninstall();
+bool installed();
+
+// Pure mapping, no hooks needed: the file or folder of a mod folder that stands in for `path` (a path below rom), or an empty path.
+// With files_only the result is a regular file or nothing.
+fs::path resolve(const fs::path&amp; path, bool files_only = true);
+
+struct Stats {
+    std::size_t opens = 0;        // CreateFile calls
+    std::size_t redirected = 0;   // ... of them answered from a mod folder
+    std::size_t attributes = 0;   // GetFileAttributesExW answered from a mod folder
+    std::size_t listings = 0;     // folder listings merged
+};
+Stats stats();
+
+}  // namespace sw::vfs</code></pre></details>
+      <h3 id="h-views"><code>sw/views.hpp</code></h3>
+      <p>Named fields of game objects.</p>
+      <details><summary>Show the header (92 lines)</summary><pre><code>#include "sw/obj.hpp"
+
+#include &lt;cstdint&gt;
+#include &lt;string_view&gt;
+
+namespace sw::views {
+
+// The base of all UI elements ("c_ui_element_*"): position, size, anchor, visibility, parent.
+class UiElement {
+public:
+    explicit UiElement(Obj obj) : obj_(obj) {}
+
+    // The handle is alive and the class is a UI element of the game.
+    explicit operator bool() const noexcept {
+        if (!obj_.alive()) return false;
+        constexpr std::string_view kPrefix = "c_ui_element";
+        return obj_.class_name().substr(0, kPrefix.size()) == kPrefix;
+    }
+
+    float x() const noexcept { return get&lt;float&gt;(kX); }
+    float y() const noexcept { return get&lt;float&gt;(kY); }
+    float width() const noexcept { return get&lt;float&gt;(kWidth); }
+    float height() const noexcept { return get&lt;float&gt;(kHeight); }
+    // 0..8: x left/center/right, y top/middle/bottom (see sw::ui::Anchor)
+    std::uint32_t anchor() const noexcept { return get&lt;std::uint32_t&gt;(kAnchor); }
+    bool visible() const noexcept { return get&lt;std::uint8_t&gt;(kVisible) != 0; }
+
+    bool set_x(float v) const noexcept { return obj_.set(kX, v); }
+    bool set_y(float v) const noexcept { return obj_.set(kY, v); }
+    bool set_visible(bool on) const noexcept {
+        return obj_.set(kVisible, static_cast&lt;std::uint8_t&gt;(on ? 1 : 0));
+    }
+
+    // The parent as a handle; an invalid handle if there is none or the
+    // game has not been seen creating it.
+    Obj parent() const noexcept {
+        std::uintptr_t p = 0;
+        if (!obj_.get(kParent, p) || !p) return Obj();
+        return Objects::instance().find(p);
+    }
+
+    Obj object() const noexcept { return obj_; }
+
+private:
+    static constexpr std::size_t kX = 0x08;
+    static constexpr std::size_t kY = 0x0c;
+    static constexpr std::size_t kWidth = 0x10;
+    static constexpr std::size_t kHeight = 0x14;
+    static constexpr std::size_t kAnchor = 0x18;
+    static constexpr std::size_t kVisible = 0x1c;
+    static constexpr std::size_t kParent = 0x20;
+
+    template &lt;typename T&gt;
+    T get(std::size_t offset) const noexcept {
+        T value{};
+        obj_.get(offset, value);
+        return value;
+    }
+
+    Obj obj_;
+};
+
+// A button of the game ("c_ui_element_point_button*", "..._rectangle_button*").
+// Offsets from sw/protos.hpp: action ID at +0x90 (0 = none), callback at
+// +0xd8. The callback pointer itself is not exposed.
+class UiButton {
+public:
+    explicit UiButton(Obj obj) : ui_(obj) {}
+
+    explicit operator bool() const noexcept {
+        if (!ui_) return false;
+        return ui_.object().class_name().find("button") != std::string_view::npos;
+    }
+
+    UiElement&amp; element() noexcept { return ui_; }
+    const UiElement&amp; element() const noexcept { return ui_; }
+
+    std::uint32_t action() const noexcept {
+        std::uint32_t v = 0;
+        ui_.object().get(0x90, v);
+        return v;
+    }
+    bool has_callback() const noexcept {
+        std::uintptr_t v = 0;
+        return ui_.object().get(0xd8, v) &amp;&amp; v != 0;
+    }
+
+private:
+    UiElement ui_;
+};
+
+}  // namespace sw::views</code></pre></details>
+      <h3 id="h-weather"><code>sw/weather.hpp</code></h3>
+      <p>Weather, wind, time of day and the wave event.</p>
+      <details><summary>Show the header (115 lines)</summary><pre><code>#include &lt;cstdint&gt;
+
+namespace sw::weather {
+
+// Starts watching. False if the game does not match the mapping or a hook cannot be set.
+bool watch();
+
+// E has been seen and can be read.
+bool ready();
+
+struct Weather {
+    float fog = 0.f;
+    float rain = 0.f;
+    float wind = 0.f;
+};
+
+// The values server.setWeather wrote (E+0x94 / 0x9c / 0xa4).
+bool set_values(Weather&amp; out);
+
+// The values the sampler uses while override_weather is on (E+0x90 / 0x98 / 0xa0); they step 1 percent per tick towards the set values.
+bool current_values(Weather&amp; out);
+
+// Writes fog, rain, wind like server.setWeather (E+0x94 / 0x9c / 0xa4). Local only.
+bool set_weather(float fog, float rain, float wind);
+
+// Writes the "current" fields (E+0x90 / 0x98 / 0xa0); what the sampler uses at once when override_weather is on.
+bool set_current(float fog, float rain, float wind);
+
+// The wind direction in radians (E+0xa8).
+bool wind_direction(float&amp; radians);
+bool set_wind_direction(float radians);
+
+// What server.getWeather returns at a position (calls the game's sampler; world coordinates in metres).
+// See snow() and temperature_celsius() below for the other Lua values.
+struct Sample {
+    float temp_raw = 0.f;     // out[0] of the sampler (Lua key "temp"): a 0..1 warmth value, NOT Celsius
+    float rain = 0.f;         // out[1]
+    float fog = 0.f;          // out[2]
+    float wind_angle = 0.f;   // out[3], radians
+    float wind = 0.f;         // out[4]
+    float wind_x = 0.f;       // out[5..7], the wind vector
+    float wind_y = 0.f;
+    float wind_z = 0.f;
+};
+bool sample(double x, double y, double z, Sample&amp; out);
+
+// The time of day. ticks counts from the start of the day; a day has day_length * 3600 ticks, with day_length
+// from the game setting of that name.
+struct TimeOfDay {
+    std::uint32_t ticks = 0;
+    std::uint32_t ticks_per_day = 0;
+    float fraction = 0.f;          // Lua getTime "percent"
+    int hour = 0;                  // Lua getTime "hour"
+    int minute = 0;                // Lua getTime "minute"
+    float daylight_factor = 0.f;   // Lua getTime "daylight_factor": sin(2 pi fraction - pi/2) * 0.5 + 0.5
+};
+bool time_of_day(TimeOfDay&amp; out);
+bool set_time_ticks(std::uint32_t ticks);
+bool set_time_fraction(float fraction);   // 0..1, like the packet c2s 49
+
+// The wave event block that spawnTsunami and the rogue wave fill. All fields are read only.
+struct WaveEvent {
+    float x = 0.f;
+    float z = 0.f;
+    float progress = 0.f;     // medium
+    float magnitude = 0.f;    // clamped to 0.03 .. 1 by spawnTsunami
+    std::int32_t timer = 0;   // 18000 when spawned by spawnTsunami, 0 after a cancel; medium
+    std::int32_t state = 0;   // 2 = idle (after a cancel); 0 = spawned; medium
+    bool idle = true;         // state == 2
+};
+bool wave_event(WaveEvent&amp; out);
+
+// ---- follow-up: temperature, snow, noise inputs, override flags, tornadoes ---------------------------------------
+
+// Temperature in Celsius at a world position (the game's function 0x2c3be0: noise, rain and wind dependent, minus 6.5 per km
+// of altitude y, never below -270). False when E has not been seen.
+bool temperature_celsius(double x, double y, double z, float&amp; out);
+// What server.getWeather returns as "snow": clamp(-temperature, 0, 5) / 5.
+bool snow(double x, double y, double z, float&amp; out);
+
+// The three inputs the tick recomputes every call (a write is lost at the next tick).
+struct NoiseInputs {
+    float phase = 0.f;      // E+0xac, 0..1, scrolls the noise
+    float season = 0.f;     // E+0xb0, 0..1, an 11 day cycle
+    float day = 0.f;        // E+0xb4, 0 at ticks 0, 1 at half a day
+};
+bool noise_inputs(NoiseInputs&amp; out);
+
+// The override flags: game settings +0x3f / +0x40 / +0x41. The packets call the inverse "stepping".
+// override_weather on means the current values step 1 percent per tick towards the set values.
+struct Overrides {
+    bool weather = false;
+    bool time = false;
+    bool wind_direction = false;   // the sampler then returns the wind direction E+0xa8
+};
+bool overrides(Overrides&amp; out);
+
+// One tornado of the ring at E+0x78. Positions are world coordinates in metres.
+struct Tornado {
+    double base[3] = {};          // base_pos
+    double top[3] = {};           // top_pos (moves with the wind)
+    float radius_inner = 0.f;     // base_radius_inner, default 10
+    float radius_outer = 0.f;     // base_radius_outer, default 30
+    bool active = false;          // is_active
+    float active_factor = 0.f;    // 0..1, fades in and out by 0.0005 per tick
+    float lifespan = 0.f;         // default 180, minus 0.016 per tick once fully faded in
+    float intensity = 0.f;
+    float influence_radius = 0.f; // default 3000 m: rain and wind are raised inside it
+};
+// Number of entries (active or fading out). The game has no limit; the ring grows.
+bool tornado_count(std::uint32_t&amp; out);
+// Entry i (0 = oldest). False when i is out of range or the ring does not look sane.
+bool tornado(std::uint32_t i, Tornado&amp; out);
+
+}  // namespace sw::weather</code></pre></details>
+      <h3 id="h-world"><code>sw/world.hpp</code></h3>
+      <p>Islands and ocean.</p>
+      <details><summary>Show the header (58 lines)</summary><pre><code>#include &lt;string&gt;
+#include &lt;vector&gt;
+
+namespace sw::world {
+
+// A grid cell of the world. The world coordinates are gx * 1000 and
+// gy * 1000; the cell of the level is relative to the origin of the level.
+struct Island {
+    int gx;
+    int gy;
+};
+
+// The level that the game plays.
+struct Level {
+    int origin_x = 0;       // the origin of the level (level + 0x30)
+    int origin_y = 0;       // the origin of the level (level + 0x34)
+    int island_count = 0;   // the cells in the island list
+    int island_capacity = 0;  // the size of the ring buffer of the list
+};
+
+// Starts watching for the world. Returns false if the game functions do not
+// match the mapping or the hook cannot be set.
+bool watch();
+
+// A world has been seen and can be read.
+bool ready();
+
+// The level that the game plays. Empty if the world is not ready.
+Level level();
+
+// The islands of the level: the grid cells. Empty if the world is not ready.
+std::vector&lt;Island&gt; islands();
+
+// The number of the tiles of the level (the cells of the whole grid).
+std::size_t tile_count();
+
+// Is the grid cell an island (is it in the island list of the level)?
+bool is_island(int gx, int gy);
+
+// The cell of the level that belongs to a grid cell: the grid cell without
+// the origin of the level. False if the world is not ready or if the cell
+// lies outside of the level (-128..127 per axis).
+bool relative(int gx, int gy, int&amp; rx, int&amp; ry);
+
+// The grid cell of a world position. False if the world is not ready.
+bool cell_of(double x, double z, int&amp; gx, int&amp; gy);
+
+// The world position of a grid cell.
+double world_x(int gx);
+double world_y(int gy);
+
+// The depth of the sea at a grid cell.
+float sea_floor(int gx, int gy);
+
+// The depth of the sea at a world position. 0 if the world is not ready.
+float ocean_depth(double x, double z);
+
+}  // namespace sw::world</code></pre></details>
+    </section>
+
+    <section id="generated">
+      <h2>Generated tables</h2>
+      <p>The files <code>include/sw/generated_*.hpp</code> are produced from the mapping and replaced with every game update. Include them through the friendly headers; never edit them.
+      They hold names, addresses, sizes, ids and layouts, for example the Lua API (<code>sw::map::kApi</code>), the classes and constructors, the OpenGL function table,
+      the symbols (<code>generated_symbols.hpp</code>) and the network messages with their fields.</p>
+      <table>
+        <tr><th>File</th><th>Size</th></tr>
+        <tr><td><code>generated_audio.hpp</code></td><td>589 lines</td></tr>
+        <tr><td><code>generated_components.hpp</code></td><td>762 lines</td></tr>
+        <tr><td><code>generated_events.hpp</code></td><td>78 lines</td></tr>
+        <tr><td><code>generated_game_state.hpp</code></td><td>51 lines</td></tr>
+        <tr><td><code>generated_gl.hpp</code></td><td>2655 lines</td></tr>
+        <tr><td><code>generated_input.hpp</code></td><td>390 lines</td></tr>
+        <tr><td><code>generated_lua_api.hpp</code></td><td>228 lines</td></tr>
+        <tr><td><code>generated_map.hpp</code></td><td>3841 lines</td></tr>
+        <tr><td><code>generated_network2.hpp</code></td><td>158 lines</td></tr>
+        <tr><td><code>generated_packet_fields.hpp</code></td><td>1368 lines</td></tr>
+        <tr><td><code>generated_packets.hpp</code></td><td>487 lines</td></tr>
+        <tr><td><code>generated_render.hpp</code></td><td>111 lines</td></tr>
+        <tr><td><code>generated_settings.hpp</code></td><td>55 lines</td></tr>
+        <tr><td><code>generated_settings_map.hpp</code></td><td>59 lines</td></tr>
+        <tr><td><code>generated_symbols.hpp</code></td><td>43095 lines</td></tr>
+        <tr><td><code>generated_vehicle.hpp</code></td><td>134 lines</td></tr>
+        <tr><td><code>generated_weather.hpp</code></td><td>65 lines</td></tr>
+      </table>
+      <div class="note">Addresses are valid for one game build only. Use the names, not the numbers, in your mod.</div>
+    </section>
+
     <section id="lang-cpp">
       <h2>C++ <span class="pill ingame">runs in-game</span></h2>
       <p>C++ is the main route for mods that run inside the game process. The
@@ -1892,6 +5209,10 @@ void sw_mod_stop() {}</pre>
       <a href="#konsole">Console &amp; log</a>
       <a href="#referenz">API reference</a>
       <a href="#launcher">The launcher</a>
+      <a href="#sdk-layout">SDK layout</a>
+      <a href="#recipes">Recipes</a>
+      <a href="#headers">Header reference</a>
+      <a href="#generated">Generated tables</a>
       <a href="#lang-cpp">C++</a>
       <a href="#fehler">Troubleshooting</a>
       <a href="#grenzen">Limits</a>
