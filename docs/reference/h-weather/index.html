@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sw/weather.hpp - DeltaLoader</title>
+<meta name="description" content="Weather, wind, time of day and the wave event.">
+<script>try{var t=localStorage.getItem("dl-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/docs.css">
+<link rel="icon" href="../../assets/logo.png" type="image/png">
+</head>
+<body data-root="../../">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><div class="topbar-in"><button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button><a class="brand" href="../../"><img src="../../assets/logo.png" alt="" width="28" height="28"><span>DeltaLoader</span><em>Docs</em></a><nav class="topnav" aria-label="Main"><a href="../../getting-started/introduction/">Getting Started</a><a href="../../players/installing-mods/">Players</a><a href="../../developer/environment/">Developers</a><a href="../../technical/architecture/">Technical</a><a href="../../resources/downloads/">Resources</a><a href="../../reference/overview/" class="on">API wiki</a></nav><div class="topbar-end"><button class="search-btn" id="search-open" type="button" aria-label="Search documentation"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><span>Search</span><kbd>Ctrl K</kbd></button><label class="version"><span class="sr">Documentation version</span><select id="version" aria-label="Documentation version"><option value="1.15.26" selected>Game 1.15.26 (current)</option></select></label><button class="icon-btn" id="theme" type="button" aria-label="Switch colour theme" title="Light / dark"><svg class="i-moon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M15.8 10.8A6.6 6.6 0 0 1 7.2 2.2 6.6 6.6 0 1 0 15.8 10.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><svg class="i-sun" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v1.8M9 14.7v1.8M1.5 9h1.8M14.7 9h1.8M3.7 3.7l1.3 1.3M13 13l1.3 1.3M14.3 3.7 13 5M5 13l-1.3 1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button><a class="icon-btn" href="https://github.com/DeltaV-Modding/DeltaLoader" rel="noopener" aria-label="GitHub"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></div></div></header>
+<div class="layout"><nav class="sidebar" id="sidebar" aria-label="Documentation"><details class="nav-group"><summary><span>Getting Started</span><span class="count">7</span></summary><ul><li><a href="../../getting-started/introduction/">Introduction</a></li><li><a href="../../getting-started/requirements/">System requirements</a></li><li><a href="../../getting-started/installation/">Installation</a></li><li><a href="../../getting-started/first-launch/">First launch</a></li><li><a href="../../getting-started/updating/">Updating the loader</a></li><li><a href="../../getting-started/uninstallation/">Uninstallation</a></li><li><a href="../../getting-started/faq/">Frequently asked questions</a></li></ul></details><details class="nav-group"><summary><span>Players</span><span class="count">10</span></summary><ul><li><a href="../../players/installing-mods/">Installing mods</a></li><li><a href="../../players/removing-mods/">Removing mods</a></li><li><a href="../../players/updating-mods/">Updating mods</a></li><li><a href="../../players/configuration/">Mod configuration</a></li><li><a href="../../players/dependencies/">Mod dependencies</a></li><li><a href="../../players/compatibility/">Mod compatibility</a></li><li><a href="../../players/profiles/">Mod profiles</a></li><li><a href="../../players/troubleshooting/">Troubleshooting</a></li><li><a href="../../players/error-messages/">Understanding error messages</a></li><li><a href="../../players/logs/">Log files and crash reports</a></li></ul></details><details class="nav-group"><summary><span>Developers</span><span class="count">12</span></summary><ul><li><a href="../../developer/environment/">Development environment setup</a></li><li><a href="../../developer/first-mod/">Creating your first mod</a></li><li><a href="../../developer/project-structure/">Project structure</a></li><li><a href="../../developer/manifest/">Mod manifest and metadata</a></li><li><a href="../../developer/lifecycle/">Mod lifecycle</a></li><li><a href="../../developer/hooks/">Events and hooks</a></li><li><a href="../../developer/api/">API reference</a></li><li><a href="../../developer/dependency-management/">Dependency management</a></li><li><a href="../../developer/inter-mod/">Inter-mod communication</a></li><li><a href="../../developer/config-api/">Configuration API</a></li><li><a href="../../developer/debugging/">Logging and debugging</a></li><li><a href="../../developer/publishing/">Packaging and publishing mods</a></li></ul></details><details class="nav-group"><summary><span>Technical</span><span class="count">9</span></summary><ul><li><a href="../../technical/architecture/">Loader architecture</a></li><li><a href="../../technical/discovery/">Mod discovery</a></li><li><a href="../../technical/loading-pipeline/">Mod loading pipeline</a></li><li><a href="../../technical/dependency-resolution/">Dependency resolution</a></li><li><a href="../../technical/assembly-loading/">Assembly loading</a></li><li><a href="../../technical/runtime-integration/">Runtime integration</a></li><li><a href="../../technical/compatibility-system/">Compatibility system</a></li><li><a href="../../technical/version-management/">Version management</a></li><li><a href="../../technical/internal-apis/">Internal APIs</a></li></ul></details><details class="nav-group"><summary><span>Resources</span><span class="count">8</span></summary><ul><li><a href="../../resources/downloads/">Downloads</a></li><li><a href="../../resources/changelog/">Changelog</a></li><li><a href="../../resources/release-history/">Release history</a></li><li><a href="../../resources/game-versions/">Supported game versions</a></li><li><a href="../../resources/platforms/">Supported platforms</a></li><li><a href="../../resources/community/">Community links</a></li><li><a href="../../resources/github/">GitHub repository</a></li><li><a href="../../resources/contributing/">Contributing guidelines</a></li></ul></details><details class="nav-group" open><summary><span>API wiki</span><span class="count">36</span></summary><ul><li><a href="../../reference/overview/">API wiki overview</a></li><li><a href="../../reference/sdk-layout/">SDK layout and build system</a></li><li><a href="../../reference/recipes/">Recipes</a></li><li><a href="../../reference/generated/">Generated tables</a></li><li><a href="../../reference/h-audio/">sw/audio.hpp</a></li><li><a href="../../reference/h-camera/">sw/camera.hpp</a></li><li><a href="../../reference/h-console/">sw/console.hpp</a></li><li><a href="../../reference/h-discord/">sw/discord.hpp</a></li><li><a href="../../reference/h-events/">sw/events.hpp</a></li><li><a href="../../reference/h-flags/">sw/flags.hpp</a></li><li><a href="../../reference/h-game/">sw/game.hpp</a></li><li><a href="../../reference/h-game-state/">sw/game_state.hpp</a></li><li><a href="../../reference/h-hook/">sw/hook.hpp</a></li><li><a href="../../reference/h-input/">sw/input.hpp</a></li><li><a href="../../reference/h-instances/">sw/instances.hpp</a></li><li><a href="../../reference/h-mapicons/">sw/mapicons.hpp</a></li><li><a href="../../reference/h-mesh/">sw/mesh.hpp</a></li><li><a href="../../reference/h-mod/">sw/mod.hpp</a></li><li><a href="../../reference/h-network/">sw/network.hpp</a></li><li><a href="../../reference/h-obj/">sw/obj.hpp</a></li><li><a href="../../reference/h-overlay/">sw/overlay.hpp</a></li><li><a href="../../reference/h-physics/">sw/physics.hpp</a></li><li><a href="../../reference/h-render/">sw/render.hpp</a></li><li><a href="../../reference/h-runtime/">sw/runtime.hpp</a></li><li><a href="../../reference/h-settings/">sw/settings.hpp</a></li><li><a href="../../reference/h-signature/">sw/signature.hpp</a></li><li><a href="../../reference/h-start-tiles/">sw/start_tiles.hpp</a></li><li><a href="../../reference/h-textures/">sw/textures.hpp</a></li><li><a href="../../reference/h-tiles/">sw/tiles.hpp</a></li><li><a href="../../reference/h-trees/">sw/trees.hpp</a></li><li><a href="../../reference/h-ui/">sw/ui.hpp</a></li><li><a href="../../reference/h-vehicle/">sw/vehicle.hpp</a></li><li><a href="../../reference/h-vfs/">sw/vfs.hpp</a></li><li><a href="../../reference/h-views/">sw/views.hpp</a></li><li><a href="../../reference/h-weather/" aria-current="page" class="active">sw/weather.hpp</a></li><li><a href="../../reference/h-world/">sw/world.hpp</a></li></ul></details><div class="side-help"><strong>Need help?</strong>Ask on the <a href="https://discord.gg/HH3ezeD8BD" rel="noopener">Discord server</a> or open an <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">issue on GitHub</a>.</div></nav><div class="scrim" id="scrim"></div><main class="content" id="main"><article><ol class="crumbs" aria-label="Breadcrumb"><li><a href="../../">Home</a></li><li><a href="../../reference/overview/">API Wiki</a></li><li aria-current="page">sw/weather.hpp</li></ol><h1>sw/weather.hpp</h1><p class="lead">Weather, wind, time of day and the wave event.</p><p>Source: <a href="https://github.com/DeltaV-Modding/DeltaLoader/blob/main/include/sw/weather.hpp" rel="noopener">include/sw/weather.hpp</a></p>
+<div class="code"><div class="code-bar"><span class="code-lang">weather.hpp</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code class="lang-cpp"><span class="tk-p">#include &lt;cstdint&gt;</span>
+
+<span class="tk-kw">namespace</span> sw::weather {
+
+<span class="tk-c">// Starts watching. False if the game does not match the mapping or a hook cannot be set.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">watch</span>();
+
+<span class="tk-c">// E has been seen and can be read.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">ready</span>();
+
+<span class="tk-kw">struct</span> Weather {
+    <span class="tk-kw">float</span> fog = <span class="tk-n">0</span>.f;
+    <span class="tk-kw">float</span> rain = <span class="tk-n">0</span>.f;
+    <span class="tk-kw">float</span> wind = <span class="tk-n">0</span>.f;
+};
+
+<span class="tk-c">// The values server.setWeather wrote (E+0x94 / 0x9c / 0xa4).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">set_values</span>(Weather&amp; out);
+
+<span class="tk-c">// The values the sampler uses while override_weather is on (E+0x90 / 0x98 / 0xa0); they step 1 percent per tick towards the set values.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">current_values</span>(Weather&amp; out);
+
+<span class="tk-c">// Writes fog, rain, wind like server.setWeather (E+0x94 / 0x9c / 0xa4). Local only.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">set_weather</span>(<span class="tk-kw">float</span> fog, <span class="tk-kw">float</span> rain, <span class="tk-kw">float</span> wind);
+
+<span class="tk-c">// Writes the &quot;current&quot; fields (E+0x90 / 0x98 / 0xa0); what the sampler uses at once when override_weather is on.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">set_current</span>(<span class="tk-kw">float</span> fog, <span class="tk-kw">float</span> rain, <span class="tk-kw">float</span> wind);
+
+<span class="tk-c">// The wind direction in radians (E+0xa8).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">wind_direction</span>(<span class="tk-kw">float</span>&amp; radians);
+<span class="tk-kw">bool</span> <span class="tk-f">set_wind_direction</span>(<span class="tk-kw">float</span> radians);
+
+<span class="tk-c">// What server.getWeather returns at a position (calls the game's sampler; world coordinates in metres).</span>
+<span class="tk-c">// See snow() and temperature_celsius() below for the other Lua values.</span>
+<span class="tk-kw">struct</span> Sample {
+    <span class="tk-kw">float</span> temp_raw = <span class="tk-n">0</span>.f;     <span class="tk-c">// out[0] of the sampler (Lua key &quot;temp&quot;): a 0..1 warmth value, NOT Celsius</span>
+    <span class="tk-kw">float</span> rain = <span class="tk-n">0</span>.f;         <span class="tk-c">// out[1]</span>
+    <span class="tk-kw">float</span> fog = <span class="tk-n">0</span>.f;          <span class="tk-c">// out[2]</span>
+    <span class="tk-kw">float</span> wind_angle = <span class="tk-n">0</span>.f;   <span class="tk-c">// out[3], radians</span>
+    <span class="tk-kw">float</span> wind = <span class="tk-n">0</span>.f;         <span class="tk-c">// out[4]</span>
+    <span class="tk-kw">float</span> wind_x = <span class="tk-n">0</span>.f;       <span class="tk-c">// out[5..7], the wind vector</span>
+    <span class="tk-kw">float</span> wind_y = <span class="tk-n">0</span>.f;
+    <span class="tk-kw">float</span> wind_z = <span class="tk-n">0</span>.f;
+};
+<span class="tk-kw">bool</span> <span class="tk-f">sample</span>(<span class="tk-kw">double</span> x, <span class="tk-kw">double</span> y, <span class="tk-kw">double</span> z, Sample&amp; out);
+
+<span class="tk-c">// The time of day. ticks counts from the start of the day; a day has day_length * 3600 ticks, with day_length</span>
+<span class="tk-c">// from the game setting of that name.</span>
+<span class="tk-kw">struct</span> TimeOfDay {
+    <span class="tk-kw">std</span>::uint32_t ticks = <span class="tk-n">0</span>;
+    <span class="tk-kw">std</span>::uint32_t ticks_per_day = <span class="tk-n">0</span>;
+    <span class="tk-kw">float</span> fraction = <span class="tk-n">0</span>.f;          <span class="tk-c">// Lua getTime &quot;percent&quot;</span>
+    <span class="tk-kw">int</span> hour = <span class="tk-n">0</span>;                  <span class="tk-c">// Lua getTime &quot;hour&quot;</span>
+    <span class="tk-kw">int</span> minute = <span class="tk-n">0</span>;                <span class="tk-c">// Lua getTime &quot;minute&quot;</span>
+    <span class="tk-kw">float</span> daylight_factor = <span class="tk-n">0</span>.f;   <span class="tk-c">// Lua getTime &quot;daylight_factor&quot;: sin(2 pi fraction - pi/2) * 0.5 + 0.5</span>
+};
+<span class="tk-kw">bool</span> <span class="tk-f">time_of_day</span>(TimeOfDay&amp; out);
+<span class="tk-kw">bool</span> <span class="tk-f">set_time_ticks</span>(<span class="tk-kw">std</span>::uint32_t ticks);
+<span class="tk-kw">bool</span> <span class="tk-f">set_time_fraction</span>(<span class="tk-kw">float</span> fraction);   <span class="tk-c">// 0..1, like the packet c2s 49</span>
+
+<span class="tk-c">// The wave event block that spawnTsunami and the rogue wave fill. All fields are read only.</span>
+<span class="tk-kw">struct</span> WaveEvent {
+    <span class="tk-kw">float</span> x = <span class="tk-n">0</span>.f;
+    <span class="tk-kw">float</span> z = <span class="tk-n">0</span>.f;
+    <span class="tk-kw">float</span> progress = <span class="tk-n">0</span>.f;     <span class="tk-c">// medium</span>
+    <span class="tk-kw">float</span> magnitude = <span class="tk-n">0</span>.f;    <span class="tk-c">// clamped to 0.03 .. 1 by spawnTsunami</span>
+    <span class="tk-kw">std</span>::int32_t timer = <span class="tk-n">0</span>;   <span class="tk-c">// 18000 when spawned by spawnTsunami, 0 after a cancel; medium</span>
+    <span class="tk-kw">std</span>::int32_t state = <span class="tk-n">0</span>;   <span class="tk-c">// 2 = idle (after a cancel); 0 = spawned; medium</span>
+    <span class="tk-kw">bool</span> idle = <span class="tk-kw">true</span>;         <span class="tk-c">// state == 2</span>
+};
+<span class="tk-kw">bool</span> <span class="tk-f">wave_event</span>(WaveEvent&amp; out);
+
+<span class="tk-c">// ---- follow-up: temperature, snow, noise inputs, override flags, tornadoes ---------------------------------------</span>
+
+<span class="tk-c">// Temperature in Celsius at a world position (the game's function 0x2c3be0: noise, rain and wind dependent, minus 6.5 per km</span>
+<span class="tk-c">// of altitude y, never below -270). False when E has not been seen.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">temperature_celsius</span>(<span class="tk-kw">double</span> x, <span class="tk-kw">double</span> y, <span class="tk-kw">double</span> z, <span class="tk-kw">float</span>&amp; out);
+<span class="tk-c">// What server.getWeather returns as &quot;snow&quot;: clamp(-temperature, 0, 5) / 5.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">snow</span>(<span class="tk-kw">double</span> x, <span class="tk-kw">double</span> y, <span class="tk-kw">double</span> z, <span class="tk-kw">float</span>&amp; out);
+
+<span class="tk-c">// The three inputs the tick recomputes every call (a write is lost at the next tick).</span>
+<span class="tk-kw">struct</span> NoiseInputs {
+    <span class="tk-kw">float</span> phase = <span class="tk-n">0</span>.f;      <span class="tk-c">// E+0xac, 0..1, scrolls the noise</span>
+    <span class="tk-kw">float</span> season = <span class="tk-n">0</span>.f;     <span class="tk-c">// E+0xb0, 0..1, an 11 day cycle</span>
+    <span class="tk-kw">float</span> day = <span class="tk-n">0</span>.f;        <span class="tk-c">// E+0xb4, 0 at ticks 0, 1 at half a day</span>
+};
+<span class="tk-kw">bool</span> <span class="tk-f">noise_inputs</span>(NoiseInputs&amp; out);
+
+<span class="tk-c">// The override flags: game settings +0x3f / +0x40 / +0x41. The packets call the inverse &quot;stepping&quot;.</span>
+<span class="tk-c">// override_weather on means the current values step 1 percent per tick towards the set values.</span>
+<span class="tk-kw">struct</span> Overrides {
+    <span class="tk-kw">bool</span> weather = <span class="tk-kw">false</span>;
+    <span class="tk-kw">bool</span> time = <span class="tk-kw">false</span>;
+    <span class="tk-kw">bool</span> wind_direction = <span class="tk-kw">false</span>;   <span class="tk-c">// the sampler then returns the wind direction E+0xa8</span>
+};
+<span class="tk-kw">bool</span> <span class="tk-f">overrides</span>(Overrides&amp; out);
+
+<span class="tk-c">// One tornado of the ring at E+0x78. Positions are world coordinates in metres.</span>
+<span class="tk-kw">struct</span> Tornado {
+    <span class="tk-kw">double</span> base[<span class="tk-n">3</span>] = {};          <span class="tk-c">// base_pos</span>
+    <span class="tk-kw">double</span> top[<span class="tk-n">3</span>] = {};           <span class="tk-c">// top_pos (moves with the wind)</span>
+    <span class="tk-kw">float</span> radius_inner = <span class="tk-n">0</span>.f;     <span class="tk-c">// base_radius_inner, default 10</span>
+    <span class="tk-kw">float</span> radius_outer = <span class="tk-n">0</span>.f;     <span class="tk-c">// base_radius_outer, default 30</span>
+    <span class="tk-kw">bool</span> active = <span class="tk-kw">false</span>;          <span class="tk-c">// is_active</span>
+    <span class="tk-kw">float</span> active_factor = <span class="tk-n">0</span>.f;    <span class="tk-c">// 0..1, fades in and out by 0.0005 per tick</span>
+    <span class="tk-kw">float</span> lifespan = <span class="tk-n">0</span>.f;         <span class="tk-c">// default 180, minus 0.016 per tick once fully faded in</span>
+    <span class="tk-kw">float</span> intensity = <span class="tk-n">0</span>.f;
+    <span class="tk-kw">float</span> influence_radius = <span class="tk-n">0</span>.f; <span class="tk-c">// default 3000 m: rain and wind are raised inside it</span>
+};
+<span class="tk-c">// Number of entries (active or fading out). The game has no limit; the ring grows.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">tornado_count</span>(<span class="tk-kw">std</span>::uint32_t&amp; out);
+<span class="tk-c">// Entry i (0 = oldest). False when i is out of range or the ring does not look sane.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">tornado</span>(<span class="tk-kw">std</span>::uint32_t i, Tornado&amp; out);
+
+}  <span class="tk-c">// namespace sw::weather</span></code></pre></div><section class="related"><h2>Related</h2><ul><li><a href="../../reference/overview/">API wiki overview</a> <span>API Wiki</span></li></ul></section></article><nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../reference/h-views/"><span>Previous</span>sw/views.hpp</a><a class="next" href="../../reference/h-world/"><span>Next</span>sw/world.hpp</a></nav><p class="edit">Documentation for game build 1.15.26. Found a mistake? <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">Open an issue</a>.</p></main><aside class="toc"></aside></div>
+<div class="search-modal" id="search-modal" hidden><div class="search-backdrop" data-close></div><div class="search-panel" role="dialog" aria-modal="true" aria-label="Search documentation"><div class="search-input"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><input id="search-q" type="search" placeholder="Search the documentation" autocomplete="off" spellcheck="false" aria-controls="search-results"><kbd>Esc</kbd></div><ul id="search-results" class="search-results" role="listbox"></ul><div class="search-foot"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div></div></div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

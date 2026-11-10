@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sw/audio.hpp - DeltaLoader</title>
+<meta name="description" content="OpenAL by name, the audio engine, a hook on playing a sound.">
+<script>try{var t=localStorage.getItem("dl-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/docs.css">
+<link rel="icon" href="../../assets/logo.png" type="image/png">
+</head>
+<body data-root="../../">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><div class="topbar-in"><button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button><a class="brand" href="../../"><img src="../../assets/logo.png" alt="" width="28" height="28"><span>DeltaLoader</span><em>Docs</em></a><nav class="topnav" aria-label="Main"><a href="../../getting-started/introduction/">Getting Started</a><a href="../../players/installing-mods/">Players</a><a href="../../developer/environment/">Developers</a><a href="../../technical/architecture/">Technical</a><a href="../../resources/downloads/">Resources</a><a href="../../reference/overview/" class="on">API wiki</a></nav><div class="topbar-end"><button class="search-btn" id="search-open" type="button" aria-label="Search documentation"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><span>Search</span><kbd>Ctrl K</kbd></button><label class="version"><span class="sr">Documentation version</span><select id="version" aria-label="Documentation version"><option value="1.15.26" selected>Game 1.15.26 (current)</option></select></label><button class="icon-btn" id="theme" type="button" aria-label="Switch colour theme" title="Light / dark"><svg class="i-moon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M15.8 10.8A6.6 6.6 0 0 1 7.2 2.2 6.6 6.6 0 1 0 15.8 10.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><svg class="i-sun" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v1.8M9 14.7v1.8M1.5 9h1.8M14.7 9h1.8M3.7 3.7l1.3 1.3M13 13l1.3 1.3M14.3 3.7 13 5M5 13l-1.3 1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button><a class="icon-btn" href="https://github.com/DeltaV-Modding/DeltaLoader" rel="noopener" aria-label="GitHub"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></div></div></header>
+<div class="layout"><nav class="sidebar" id="sidebar" aria-label="Documentation"><details class="nav-group"><summary><span>Getting Started</span><span class="count">7</span></summary><ul><li><a href="../../getting-started/introduction/">Introduction</a></li><li><a href="../../getting-started/requirements/">System requirements</a></li><li><a href="../../getting-started/installation/">Installation</a></li><li><a href="../../getting-started/first-launch/">First launch</a></li><li><a href="../../getting-started/updating/">Updating the loader</a></li><li><a href="../../getting-started/uninstallation/">Uninstallation</a></li><li><a href="../../getting-started/faq/">Frequently asked questions</a></li></ul></details><details class="nav-group"><summary><span>Players</span><span class="count">10</span></summary><ul><li><a href="../../players/installing-mods/">Installing mods</a></li><li><a href="../../players/removing-mods/">Removing mods</a></li><li><a href="../../players/updating-mods/">Updating mods</a></li><li><a href="../../players/configuration/">Mod configuration</a></li><li><a href="../../players/dependencies/">Mod dependencies</a></li><li><a href="../../players/compatibility/">Mod compatibility</a></li><li><a href="../../players/profiles/">Mod profiles</a></li><li><a href="../../players/troubleshooting/">Troubleshooting</a></li><li><a href="../../players/error-messages/">Understanding error messages</a></li><li><a href="../../players/logs/">Log files and crash reports</a></li></ul></details><details class="nav-group"><summary><span>Developers</span><span class="count">12</span></summary><ul><li><a href="../../developer/environment/">Development environment setup</a></li><li><a href="../../developer/first-mod/">Creating your first mod</a></li><li><a href="../../developer/project-structure/">Project structure</a></li><li><a href="../../developer/manifest/">Mod manifest and metadata</a></li><li><a href="../../developer/lifecycle/">Mod lifecycle</a></li><li><a href="../../developer/hooks/">Events and hooks</a></li><li><a href="../../developer/api/">API reference</a></li><li><a href="../../developer/dependency-management/">Dependency management</a></li><li><a href="../../developer/inter-mod/">Inter-mod communication</a></li><li><a href="../../developer/config-api/">Configuration API</a></li><li><a href="../../developer/debugging/">Logging and debugging</a></li><li><a href="../../developer/publishing/">Packaging and publishing mods</a></li></ul></details><details class="nav-group"><summary><span>Technical</span><span class="count">9</span></summary><ul><li><a href="../../technical/architecture/">Loader architecture</a></li><li><a href="../../technical/discovery/">Mod discovery</a></li><li><a href="../../technical/loading-pipeline/">Mod loading pipeline</a></li><li><a href="../../technical/dependency-resolution/">Dependency resolution</a></li><li><a href="../../technical/assembly-loading/">Assembly loading</a></li><li><a href="../../technical/runtime-integration/">Runtime integration</a></li><li><a href="../../technical/compatibility-system/">Compatibility system</a></li><li><a href="../../technical/version-management/">Version management</a></li><li><a href="../../technical/internal-apis/">Internal APIs</a></li></ul></details><details class="nav-group"><summary><span>Resources</span><span class="count">8</span></summary><ul><li><a href="../../resources/downloads/">Downloads</a></li><li><a href="../../resources/changelog/">Changelog</a></li><li><a href="../../resources/release-history/">Release history</a></li><li><a href="../../resources/game-versions/">Supported game versions</a></li><li><a href="../../resources/platforms/">Supported platforms</a></li><li><a href="../../resources/community/">Community links</a></li><li><a href="../../resources/github/">GitHub repository</a></li><li><a href="../../resources/contributing/">Contributing guidelines</a></li></ul></details><details class="nav-group" open><summary><span>API wiki</span><span class="count">36</span></summary><ul><li><a href="../../reference/overview/">API wiki overview</a></li><li><a href="../../reference/sdk-layout/">SDK layout and build system</a></li><li><a href="../../reference/recipes/">Recipes</a></li><li><a href="../../reference/generated/">Generated tables</a></li><li><a href="../../reference/h-audio/" aria-current="page" class="active">sw/audio.hpp</a></li><li><a href="../../reference/h-camera/">sw/camera.hpp</a></li><li><a href="../../reference/h-console/">sw/console.hpp</a></li><li><a href="../../reference/h-discord/">sw/discord.hpp</a></li><li><a href="../../reference/h-events/">sw/events.hpp</a></li><li><a href="../../reference/h-flags/">sw/flags.hpp</a></li><li><a href="../../reference/h-game/">sw/game.hpp</a></li><li><a href="../../reference/h-game-state/">sw/game_state.hpp</a></li><li><a href="../../reference/h-hook/">sw/hook.hpp</a></li><li><a href="../../reference/h-input/">sw/input.hpp</a></li><li><a href="../../reference/h-instances/">sw/instances.hpp</a></li><li><a href="../../reference/h-mapicons/">sw/mapicons.hpp</a></li><li><a href="../../reference/h-mesh/">sw/mesh.hpp</a></li><li><a href="../../reference/h-mod/">sw/mod.hpp</a></li><li><a href="../../reference/h-network/">sw/network.hpp</a></li><li><a href="../../reference/h-obj/">sw/obj.hpp</a></li><li><a href="../../reference/h-overlay/">sw/overlay.hpp</a></li><li><a href="../../reference/h-physics/">sw/physics.hpp</a></li><li><a href="../../reference/h-render/">sw/render.hpp</a></li><li><a href="../../reference/h-runtime/">sw/runtime.hpp</a></li><li><a href="../../reference/h-settings/">sw/settings.hpp</a></li><li><a href="../../reference/h-signature/">sw/signature.hpp</a></li><li><a href="../../reference/h-start-tiles/">sw/start_tiles.hpp</a></li><li><a href="../../reference/h-textures/">sw/textures.hpp</a></li><li><a href="../../reference/h-tiles/">sw/tiles.hpp</a></li><li><a href="../../reference/h-trees/">sw/trees.hpp</a></li><li><a href="../../reference/h-ui/">sw/ui.hpp</a></li><li><a href="../../reference/h-vehicle/">sw/vehicle.hpp</a></li><li><a href="../../reference/h-vfs/">sw/vfs.hpp</a></li><li><a href="../../reference/h-views/">sw/views.hpp</a></li><li><a href="../../reference/h-weather/">sw/weather.hpp</a></li><li><a href="../../reference/h-world/">sw/world.hpp</a></li></ul></details><div class="side-help"><strong>Need help?</strong>Ask on the <a href="https://discord.gg/HH3ezeD8BD" rel="noopener">Discord server</a> or open an <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">issue on GitHub</a>.</div></nav><div class="scrim" id="scrim"></div><main class="content" id="main"><article><ol class="crumbs" aria-label="Breadcrumb"><li><a href="../../">Home</a></li><li><a href="../../reference/overview/">API Wiki</a></li><li aria-current="page">sw/audio.hpp</li></ol><h1>sw/audio.hpp</h1><p class="lead">OpenAL by name, the audio engine, a hook on playing a sound.</p><p>Source: <a href="https://github.com/DeltaV-Modding/DeltaLoader/blob/main/include/sw/audio.hpp" rel="noopener">include/sw/audio.hpp</a></p>
+<div class="code"><div class="code-bar"><span class="code-lang">audio.hpp</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code class="lang-cpp"><span class="tk-p">#include &quot;sw/generated_audio.hpp&quot;</span>
+
+<span class="tk-p">#include &lt;cstddef&gt;</span>
+<span class="tk-p">#include &lt;cstdint&gt;</span>
+<span class="tk-p">#include &lt;string&gt;</span>
+<span class="tk-p">#include &lt;vector&gt;</span>
+
+<span class="tk-kw">namespace</span> sw::audio {
+
+<span class="tk-c">// The entry of the table for this name (&quot;alSourcePlay&quot;, &quot;alcOpenDevice&quot;), or nullptr.</span>
+<span class="tk-kw">const</span> AlEntry* <span class="tk-f">al_entry</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name);
+
+<span class="tk-c">// The function pointer the game holds for this name (the import table entry of OpenAL64.dll), or</span>
+<span class="tk-c">// nullptr when the name is unknown or the runtime is not attached.</span>
+<span class="tk-kw">void</span>* <span class="tk-f">al_function</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name);
+
+<span class="tk-c">// How many places of the engine call this function (0 = imported but never used).</span>
+<span class="tk-kw">int</span> <span class="tk-f">al_uses</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name);
+
+<span class="tk-c">// Hooks al_engine_update (0x1ac120, remembers the engine object) and al_engine_play_sound (0x1ac300).</span>
+<span class="tk-c">// Checks the opcodes of both first. False if the game does not match or a hook fails.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">watch</span>();
+
+<span class="tk-c">// Removes both hooks and all callbacks.</span>
+<span class="tk-kw">void</span> <span class="tk-f">unwatch</span>();
+
+<span class="tk-c">// An update was seen in the last second.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">ready</span>();
+
+<span class="tk-c">// The audio engine object, or nullptr before the first update.</span>
+<span class="tk-kw">void</span>* <span class="tk-f">engine</span>();
+
+<span class="tk-c">// A sound is played on a pool source (the call of 0x1ac300, before it runs).</span>
+<span class="tk-kw">struct</span> PlayEvent {
+    <span class="tk-kw">void</span>* engine;
+    <span class="tk-kw">std</span>::uint32_t buffer;   <span class="tk-c">// the AL buffer id of the sound (0 when the reference could not be read)</span>
+    <span class="tk-kw">bool</span> loop;              <span class="tk-c">// the fourth argument (the gain is a float in xmm2 and is NOT readable by a hook)</span>
+};
+<span class="tk-kw">using</span> PlayCallback = <span class="tk-kw">void</span> (*)(<span class="tk-kw">const</span> PlayEvent&amp; event, <span class="tk-kw">void</span>* user);
+
+<span class="tk-c">// Adds a callback. False before watch(), or when the same callback/user pair is already there.</span>
+<span class="tk-c">// The callback runs on the thread of the engine: be fast, do not throw.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">on_play</span>(PlayCallback callback, <span class="tk-kw">void</span>* user);
+<span class="tk-kw">void</span> <span class="tk-f">remove_callbacks</span>();
+
+<span class="tk-c">// The number of calls of the play function seen since watch(), and of updates.</span>
+<span class="tk-kw">std</span>::uint64_t <span class="tk-f">plays</span>();
+<span class="tk-kw">std</span>::uint64_t <span class="tk-f">updates</span>();
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">int</span> kPoolSources = <span class="tk-n">24</span>;
+
+<span class="tk-kw">struct</span> SourceInfo {
+    <span class="tk-kw">int</span> index;                 <span class="tk-c">// 0..23</span>
+    <span class="tk-kw">std</span>::uint32_t source;      <span class="tk-c">// the ALuint of the source</span>
+    <span class="tk-kw">std</span>::uint32_t buffer;      <span class="tk-c">// the ALuint of the buffer it plays, 0 if none</span>
+    <span class="tk-kw">float</span> gain;                <span class="tk-c">// the base gain (before the master gain)</span>
+    <span class="tk-kw">bool</span> in_use;
+};
+
+<span class="tk-c">// The 24 pool sources, read from the engine. Empty before the first update or when a read fails.</span>
+<span class="tk-kw">std</span>::vector&lt;SourceInfo&gt; <span class="tk-f">sources</span>();
+
+<span class="tk-c">// The number of pool sources in use.</span>
+<span class="tk-kw">int</span> <span class="tk-f">sources_in_use</span>();
+
+<span class="tk-kw">struct</span> ListenerPosition {
+    <span class="tk-kw">float</span> x, y, z;
+};
+<span class="tk-c">// The position the engine uses for its emitters (engine + 0x538), written by the frame function</span>
+<span class="tk-c">// right before alListener3f. False before the first update. The ORIENTATION is not stored: it is</span>
+<span class="tk-c">// only passed to alListenerfv.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">listener</span>(ListenerPosition&amp; out);
+
+<span class="tk-c">// The four group gains of the engine (all 1.0f after construction). False before the first update.</span>
+<span class="tk-kw">struct</span> GroupGains {
+    <span class="tk-kw">float</span> pool, emitters, streams, group4;
+};
+<span class="tk-kw">bool</span> <span class="tk-f">group_gains</span>(GroupGains&amp; out);
+
+<span class="tk-kw">enum</span> <span class="tk-kw">class</span> Mood : <span class="tk-kw">std</span>::int32_t { None = <span class="tk-n">0</span>, MainMenu = <span class="tk-n">1</span>, Normal = <span class="tk-n">2</span>, MissionMid = <span class="tk-n">3</span>, MissionHigh = <span class="tk-n">4</span> };
+<span class="tk-c">// The mood value (state + 0xa0) and the track kind that plays (state + 0x4c; 5 = nothing). False when</span>
+<span class="tk-c">// the state is not initialised (its first dword must be 60) or the value is out of range.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">music_mood</span>(Mood&amp; mood, <span class="tk-kw">int</span>* playing_kind = <span class="tk-kw">nullptr</span>);
+<span class="tk-c">// &quot;none&quot;, &quot;main_menu&quot;, &quot;mood_normal&quot;, &quot;mood_mission_mid&quot;, &quot;mood_mission_high&quot;, or nullptr.</span>
+<span class="tk-kw">const</span> <span class="tk-kw">char</span>* <span class="tk-f">mood_name</span>(<span class="tk-kw">int</span> value);
+
+<span class="tk-c">// The sound paths in the program (&quot;audio/fx/wind_outdoor_medium.ogg&quot;), 528 of them, and a search.</span>
+<span class="tk-kw">std</span>::size_t <span class="tk-f">sound_count</span>();
+<span class="tk-kw">const</span> SoundPath* <span class="tk-f">sound_at</span>(<span class="tk-kw">std</span>::size_t index);
+<span class="tk-c">// The first path that contains `part` (case sensitive), or nullptr.</span>
+<span class="tk-kw">const</span> SoundPath* <span class="tk-f">find_sound</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* part);
+
+<span class="tk-c">// The cache of a sound library (library + 0x2f70): every sound loaded by name so far.</span>
+<span class="tk-kw">struct</span> CachedSound {
+    <span class="tk-kw">std</span>::<span class="tk-kw">string</span> name;          <span class="tk-c">// &quot;audio/fx/...ogg&quot;</span>
+    <span class="tk-kw">std</span>::uint32_t buffer;      <span class="tk-c">// the AL buffer id, 0 if it could not be read</span>
+};
+<span class="tk-c">// `library` is a pointer to a sound library object: the first argument of 0x27e4b0 (hook it, or read</span>
+<span class="tk-c">// scene + 0x17e8 of the game scene). All reads are checked; empty on any mismatch.</span>
+<span class="tk-kw">std</span>::vector&lt;CachedSound&gt; <span class="tk-f">library_cache</span>(<span class="tk-kw">const</span> <span class="tk-kw">void</span>* library);
+<span class="tk-c">// The AL buffer id loaded for this exact path, or 0.</span>
+<span class="tk-kw">std</span>::uint32_t <span class="tk-f">library_buffer</span>(<span class="tk-kw">const</span> <span class="tk-kw">void</span>* library, <span class="tk-kw">const</span> <span class="tk-kw">char</span>* path);
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaEngineInit = <span class="tk-n">0x1abbd0</span>;        <span class="tk-c">// (engine)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaEngineShutdown = <span class="tk-n">0x1abf80</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaEngineUpdate = <span class="tk-n">0x1ac120</span>;      <span class="tk-c">// (engine, ...) once per frame</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaEnginePlaySound = <span class="tk-n">0x1ac300</span>;   <span class="tk-c">// (engine, buffer_ref*, gain in xmm2, loop, out handle)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaEngineMusicStart = <span class="tk-n">0x1ac4f0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaEngineEmitterCreate = <span class="tk-n">0x1ac6a0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaSourceStart = <span class="tk-n">0x1a9aa0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaBufferLoadFile = <span class="tk-n">0x1a9550</span>;    <span class="tk-c">// .ogg / .wav</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaBufferFromPcm16 = <span class="tk-n">0x1a9890</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaBufferRefRelease = <span class="tk-n">0x1a9a10</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaVoiceQueuePcm = <span class="tk-n">0x1aa090</span>;     <span class="tk-c">// called by the voice_message handler</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaVoiceSetGain = <span class="tk-n">0x1aa1b0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaEffectSlotCreate = <span class="tk-n">0x1aba70</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaListenerUpdate = <span class="tk-n">0x7425a0</span>;    <span class="tk-c">// the only caller of alListener3f / alListenerfv</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaSoundLibraryRegisterAll = <span class="tk-n">0x27e980</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaSoundLibraryLoad = <span class="tk-n">0x27e4b0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaSetAudioMoodCase = <span class="tk-n">0x8602cc</span>;  <span class="tk-c">// case of s2c 174 in the client switch 0x85f330</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffOwnerEngine = <span class="tk-n">0x2c8</span>;            <span class="tk-c">// engine = owner + 0x2c8</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMusicState = <span class="tk-n">0xd056e0</span>;      <span class="tk-c">// the global music state (made by 0x289090)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMusicMoodUpdate = <span class="tk-n">0x289280</span>;   <span class="tk-c">// the only reader of the mood</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMusicSwitch = <span class="tk-n">0x2895e0</span>;       <span class="tk-c">// (music, platform, track kind, fade, flag) -&gt; 0x1ac4f0</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineEmitterGain = <span class="tk-n">0x3d8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineStreamGain = <span class="tk-n">0x420</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineGroup4Gain = <span class="tk-n">0x478</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineGroup4Sources = <span class="tk-n">0x480</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffLibraryCache = <span class="tk-n">0x2f70</span>;          <span class="tk-c">// ptr; +8 capacity, +0xc start, +0x10 count; entries 0x18</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffMusicPlayingKind = <span class="tk-n">0x4c</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffMoodOwner = <span class="tk-n">0x138a0</span>;            <span class="tk-c">// [client + 0x138a0] + 0xa0 = the mood value</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffMoodValue = <span class="tk-n">0xa0</span>;
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineDevice = <span class="tk-n">0x0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineContext = <span class="tk-n">0x8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineMasterGain = <span class="tk-n">0x10</span>;        <span class="tk-c">// float, read through slot + 0x10</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEnginePool = <span class="tk-n">0x18</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kPoolSlotSize = <span class="tk-n">0x28</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineEmitterManager = <span class="tk-n">0x3d8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineStreamManager = <span class="tk-n">0x420</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineListenerPosition = <span class="tk-n">0x538</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineLastUpdate = <span class="tk-n">0x548</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffEngineLock = <span class="tk-n">0x580</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffSlotSource = <span class="tk-n">0x0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffSlotGain = <span class="tk-n">0x4</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffSlotBufferRef = <span class="tk-n">0x8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffSlotMasterGain = <span class="tk-n">0x10</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffSlotHandle = <span class="tk-n">0x18</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffSlotInUse = <span class="tk-n">0x20</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffBufferId = <span class="tk-n">0x0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffBufferSamples = <span class="tk-n">0x4</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffBufferFrequency = <span class="tk-n">0x8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffBufferBytes = <span class="tk-n">0xc</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffBufferCreated = <span class="tk-n">0x10</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kBufferObjectSize = <span class="tk-n">0x14</span>;
+
+}  <span class="tk-c">// namespace sw::audio</span></code></pre></div><section class="related"><h2>Related</h2><ul><li><a href="../../reference/overview/">API wiki overview</a> <span>API Wiki</span></li></ul></section></article><nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../reference/generated/"><span>Previous</span>Generated tables</a><a class="next" href="../../reference/h-camera/"><span>Next</span>sw/camera.hpp</a></nav><p class="edit">Documentation for game build 1.15.26. Found a mistake? <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">Open an issue</a>.</p></main><aside class="toc"></aside></div>
+<div class="search-modal" id="search-modal" hidden><div class="search-backdrop" data-close></div><div class="search-panel" role="dialog" aria-modal="true" aria-label="Search documentation"><div class="search-input"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><input id="search-q" type="search" placeholder="Search the documentation" autocomplete="off" spellcheck="false" aria-controls="search-results"><kbd>Esc</kbd></div><ul id="search-results" class="search-results" role="listbox"></ul><div class="search-foot"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div></div></div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

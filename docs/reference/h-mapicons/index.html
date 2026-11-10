@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sw/mapicons.hpp - DeltaLoader</title>
+<meta name="description" content="The map icon slots and new marker types.">
+<script>try{var t=localStorage.getItem("dl-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/docs.css">
+<link rel="icon" href="../../assets/logo.png" type="image/png">
+</head>
+<body data-root="../../">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><div class="topbar-in"><button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button><a class="brand" href="../../"><img src="../../assets/logo.png" alt="" width="28" height="28"><span>DeltaLoader</span><em>Docs</em></a><nav class="topnav" aria-label="Main"><a href="../../getting-started/introduction/">Getting Started</a><a href="../../players/installing-mods/">Players</a><a href="../../developer/environment/">Developers</a><a href="../../technical/architecture/">Technical</a><a href="../../resources/downloads/">Resources</a><a href="../../reference/overview/" class="on">API wiki</a></nav><div class="topbar-end"><button class="search-btn" id="search-open" type="button" aria-label="Search documentation"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><span>Search</span><kbd>Ctrl K</kbd></button><label class="version"><span class="sr">Documentation version</span><select id="version" aria-label="Documentation version"><option value="1.15.26" selected>Game 1.15.26 (current)</option></select></label><button class="icon-btn" id="theme" type="button" aria-label="Switch colour theme" title="Light / dark"><svg class="i-moon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M15.8 10.8A6.6 6.6 0 0 1 7.2 2.2 6.6 6.6 0 1 0 15.8 10.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><svg class="i-sun" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v1.8M9 14.7v1.8M1.5 9h1.8M14.7 9h1.8M3.7 3.7l1.3 1.3M13 13l1.3 1.3M14.3 3.7 13 5M5 13l-1.3 1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button><a class="icon-btn" href="https://github.com/DeltaV-Modding/DeltaLoader" rel="noopener" aria-label="GitHub"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></div></div></header>
+<div class="layout"><nav class="sidebar" id="sidebar" aria-label="Documentation"><details class="nav-group"><summary><span>Getting Started</span><span class="count">7</span></summary><ul><li><a href="../../getting-started/introduction/">Introduction</a></li><li><a href="../../getting-started/requirements/">System requirements</a></li><li><a href="../../getting-started/installation/">Installation</a></li><li><a href="../../getting-started/first-launch/">First launch</a></li><li><a href="../../getting-started/updating/">Updating the loader</a></li><li><a href="../../getting-started/uninstallation/">Uninstallation</a></li><li><a href="../../getting-started/faq/">Frequently asked questions</a></li></ul></details><details class="nav-group"><summary><span>Players</span><span class="count">10</span></summary><ul><li><a href="../../players/installing-mods/">Installing mods</a></li><li><a href="../../players/removing-mods/">Removing mods</a></li><li><a href="../../players/updating-mods/">Updating mods</a></li><li><a href="../../players/configuration/">Mod configuration</a></li><li><a href="../../players/dependencies/">Mod dependencies</a></li><li><a href="../../players/compatibility/">Mod compatibility</a></li><li><a href="../../players/profiles/">Mod profiles</a></li><li><a href="../../players/troubleshooting/">Troubleshooting</a></li><li><a href="../../players/error-messages/">Understanding error messages</a></li><li><a href="../../players/logs/">Log files and crash reports</a></li></ul></details><details class="nav-group"><summary><span>Developers</span><span class="count">12</span></summary><ul><li><a href="../../developer/environment/">Development environment setup</a></li><li><a href="../../developer/first-mod/">Creating your first mod</a></li><li><a href="../../developer/project-structure/">Project structure</a></li><li><a href="../../developer/manifest/">Mod manifest and metadata</a></li><li><a href="../../developer/lifecycle/">Mod lifecycle</a></li><li><a href="../../developer/hooks/">Events and hooks</a></li><li><a href="../../developer/api/">API reference</a></li><li><a href="../../developer/dependency-management/">Dependency management</a></li><li><a href="../../developer/inter-mod/">Inter-mod communication</a></li><li><a href="../../developer/config-api/">Configuration API</a></li><li><a href="../../developer/debugging/">Logging and debugging</a></li><li><a href="../../developer/publishing/">Packaging and publishing mods</a></li></ul></details><details class="nav-group"><summary><span>Technical</span><span class="count">9</span></summary><ul><li><a href="../../technical/architecture/">Loader architecture</a></li><li><a href="../../technical/discovery/">Mod discovery</a></li><li><a href="../../technical/loading-pipeline/">Mod loading pipeline</a></li><li><a href="../../technical/dependency-resolution/">Dependency resolution</a></li><li><a href="../../technical/assembly-loading/">Assembly loading</a></li><li><a href="../../technical/runtime-integration/">Runtime integration</a></li><li><a href="../../technical/compatibility-system/">Compatibility system</a></li><li><a href="../../technical/version-management/">Version management</a></li><li><a href="../../technical/internal-apis/">Internal APIs</a></li></ul></details><details class="nav-group"><summary><span>Resources</span><span class="count">8</span></summary><ul><li><a href="../../resources/downloads/">Downloads</a></li><li><a href="../../resources/changelog/">Changelog</a></li><li><a href="../../resources/release-history/">Release history</a></li><li><a href="../../resources/game-versions/">Supported game versions</a></li><li><a href="../../resources/platforms/">Supported platforms</a></li><li><a href="../../resources/community/">Community links</a></li><li><a href="../../resources/github/">GitHub repository</a></li><li><a href="../../resources/contributing/">Contributing guidelines</a></li></ul></details><details class="nav-group" open><summary><span>API wiki</span><span class="count">36</span></summary><ul><li><a href="../../reference/overview/">API wiki overview</a></li><li><a href="../../reference/sdk-layout/">SDK layout and build system</a></li><li><a href="../../reference/recipes/">Recipes</a></li><li><a href="../../reference/generated/">Generated tables</a></li><li><a href="../../reference/h-audio/">sw/audio.hpp</a></li><li><a href="../../reference/h-camera/">sw/camera.hpp</a></li><li><a href="../../reference/h-console/">sw/console.hpp</a></li><li><a href="../../reference/h-discord/">sw/discord.hpp</a></li><li><a href="../../reference/h-events/">sw/events.hpp</a></li><li><a href="../../reference/h-flags/">sw/flags.hpp</a></li><li><a href="../../reference/h-game/">sw/game.hpp</a></li><li><a href="../../reference/h-game-state/">sw/game_state.hpp</a></li><li><a href="../../reference/h-hook/">sw/hook.hpp</a></li><li><a href="../../reference/h-input/">sw/input.hpp</a></li><li><a href="../../reference/h-instances/">sw/instances.hpp</a></li><li><a href="../../reference/h-mapicons/" aria-current="page" class="active">sw/mapicons.hpp</a></li><li><a href="../../reference/h-mesh/">sw/mesh.hpp</a></li><li><a href="../../reference/h-mod/">sw/mod.hpp</a></li><li><a href="../../reference/h-network/">sw/network.hpp</a></li><li><a href="../../reference/h-obj/">sw/obj.hpp</a></li><li><a href="../../reference/h-overlay/">sw/overlay.hpp</a></li><li><a href="../../reference/h-physics/">sw/physics.hpp</a></li><li><a href="../../reference/h-render/">sw/render.hpp</a></li><li><a href="../../reference/h-runtime/">sw/runtime.hpp</a></li><li><a href="../../reference/h-settings/">sw/settings.hpp</a></li><li><a href="../../reference/h-signature/">sw/signature.hpp</a></li><li><a href="../../reference/h-start-tiles/">sw/start_tiles.hpp</a></li><li><a href="../../reference/h-textures/">sw/textures.hpp</a></li><li><a href="../../reference/h-tiles/">sw/tiles.hpp</a></li><li><a href="../../reference/h-trees/">sw/trees.hpp</a></li><li><a href="../../reference/h-ui/">sw/ui.hpp</a></li><li><a href="../../reference/h-vehicle/">sw/vehicle.hpp</a></li><li><a href="../../reference/h-vfs/">sw/vfs.hpp</a></li><li><a href="../../reference/h-views/">sw/views.hpp</a></li><li><a href="../../reference/h-weather/">sw/weather.hpp</a></li><li><a href="../../reference/h-world/">sw/world.hpp</a></li></ul></details><div class="side-help"><strong>Need help?</strong>Ask on the <a href="https://discord.gg/HH3ezeD8BD" rel="noopener">Discord server</a> or open an <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">issue on GitHub</a>.</div></nav><div class="scrim" id="scrim"></div><main class="content" id="main"><article><ol class="crumbs" aria-label="Breadcrumb"><li><a href="../../">Home</a></li><li><a href="../../reference/overview/">API Wiki</a></li><li aria-current="page">sw/mapicons.hpp</li></ol><h1>sw/mapicons.hpp</h1><p class="lead">The map icon slots and new marker types.</p><p>Source: <a href="https://github.com/DeltaV-Modding/DeltaLoader/blob/main/include/sw/mapicons.hpp" rel="noopener">include/sw/mapicons.hpp</a></p>
+<div class="code"><div class="code-bar"><span class="code-lang">mapicons.hpp</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code class="lang-cpp"><span class="tk-p">#include &quot;sw/textures.hpp&quot;</span>
+
+<span class="tk-p">#include &lt;cstdint&gt;</span>
+<span class="tk-p">#include &lt;string&gt;</span>
+<span class="tk-p">#include &lt;vector&gt;</span>
+
+<span class="tk-kw">namespace</span> sw::mapicons {
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMapIconsInit = <span class="tk-n">0x6a05e0</span>;      <span class="tk-c">// fills the slots</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMapIconSlot = <span class="tk-n">0x6a2120</span>;       <span class="tk-c">// (map, slot, name, context, color, scale)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaAtlasAddSprites = <span class="tk-n">0x1df3e0</span>;   <span class="tk-c">// (target, ., mm_string* xml path)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kAtlasXml = <span class="tk-s">&quot;graphics/ui/map/atlas_mapicons.xml&quot;</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kAtlasTexture = <span class="tk-s">&quot;graphics/ui/map/atlas_mapicons.txtr&quot;</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kCustomXml = <span class="tk-s">&quot;graphics/ui/map/atlas_mapicons_custom.xml&quot;</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kCustomTexture = <span class="tk-s">&quot;graphics/ui/map/atlas_mapicons_custom.txtr&quot;</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">int</span> kAtlasSize = <span class="tk-n">1024</span>;
+
+<span class="tk-kw">struct</span> Slot {
+    <span class="tk-kw">std</span>::uint32_t offset;   <span class="tk-c">// inside the map object</span>
+    <span class="tk-kw">const</span> <span class="tk-kw">char</span>* name;       <span class="tk-c">// a region of the atlas</span>
+    <span class="tk-kw">std</span>::uint32_t color;    <span class="tk-c">// ARGB</span>
+    <span class="tk-kw">float</span> scale;
+};
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> Slot kSlots[<span class="tk-n">56</span>] = {
+    {<span class="tk-n">0x10</span>, <span class="tk-s">&quot;waypoint&quot;</span>, <span class="tk-n">0xffe6e6e6</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0x20</span>, <span class="tk-s">&quot;targetcircle&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0x30</span>, <span class="tk-s">&quot;survivoricon&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x40</span>, <span class="tk-s">&quot;fireicon&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x50</span>, <span class="tk-s">&quot;iceicon&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x60</span>, <span class="tk-s">&quot;mysteryicon&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x70</span>, <span class="tk-s">&quot;crateicon&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x80</span>, <span class="tk-s">&quot;playercircle&quot;</span>, <span class="tk-n">0xffe6e6e6</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0x90</span>, <span class="tk-s">&quot;playercircle&quot;</span>, <span class="tk-n">0xff131516</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0xa0</span>, <span class="tk-s">&quot;playercircle&quot;</span>, <span class="tk-n">0xff0000dc</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0xb0</span>, <span class="tk-s">&quot;playercircle&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0xc0</span>, <span class="tk-s">&quot;circle&quot;</span>, <span class="tk-n">0xff131516</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0xd0</span>, <span class="tk-s">&quot;circle&quot;</span>, <span class="tk-n">0xffe6e6e6</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0xe0</span>, <span class="tk-s">&quot;circle&quot;</span>, <span class="tk-n">0xff0000dc</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0xf0</span>, <span class="tk-s">&quot;dashedcircle&quot;</span>, <span class="tk-n">0xff0000dc</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0x100</span>, <span class="tk-s">&quot;circle&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0x110</span>, <span class="tk-s">&quot;circle&quot;</span>, <span class="tk-n">0xff82f43c</span>u, <span class="tk-n">1.0000f</span>},
+    {<span class="tk-n">0x120</span>, <span class="tk-s">&quot;missionmarker&quot;</span>, <span class="tk-n">0xffe6e6e6</span>u, <span class="tk-n">0.8000f</span>},
+    {<span class="tk-n">0x130</span>, <span class="tk-s">&quot;questionmark&quot;</span>, <span class="tk-n">0xffe6e6e6</span>u, <span class="tk-n">0.8000f</span>},
+    {<span class="tk-n">0x140</span>, <span class="tk-s">&quot;questionmark&quot;</span>, <span class="tk-n">0xffe6e6e6</span>u, <span class="tk-n">0.8000f</span>},
+    {<span class="tk-n">0x150</span>, <span class="tk-s">&quot;hangar&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.9000f</span>},
+    {<span class="tk-n">0x160</span>, <span class="tk-s">&quot;home&quot;</span>, <span class="tk-n">0xffe6e6e6</span>u, <span class="tk-n">0.9000f</span>},
+    {<span class="tk-n">0x170</span>, <span class="tk-s">&quot;home_purchase&quot;</span>, <span class="tk-n">0xff131516</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x180</span>, <span class="tk-s">&quot;network&quot;</span>, <span class="tk-n">0xffe6e6e6</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x1a0</span>, <span class="tk-s">&quot;iconcross&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x1b0</span>, <span class="tk-s">&quot;iconwreckage&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x1c0</span>, <span class="tk-s">&quot;iconterminal&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x1d0</span>, <span class="tk-s">&quot;iconmilitary&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x1e0</span>, <span class="tk-s">&quot;iconheritage&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x1f0</span>, <span class="tk-s">&quot;iconrig&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x200</span>, <span class="tk-s">&quot;iconindustrial&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x210</span>, <span class="tk-s">&quot;iconhospital&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x220</span>, <span class="tk-s">&quot;iconscience&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x230</span>, <span class="tk-s">&quot;iconairport&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x240</span>, <span class="tk-s">&quot;iconcoastguard&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x250</span>, <span class="tk-s">&quot;iconlighthouse&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x260</span>, <span class="tk-s">&quot;iconfuel&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x270</span>, <span class="tk-s">&quot;iconfuel&quot;</span>, <span class="tk-n">0xff82f43c</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x280</span>, <span class="tk-s">&quot;hospital_ship&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.7000f</span>},
+    {<span class="tk-n">0x290</span>, <span class="tk-s">&quot;refueler_plane&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.7000f</span>},
+    {<span class="tk-n">0x2a0</span>, <span class="tk-s">&quot;ore&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x2b0</span>, <span class="tk-s">&quot;ingot&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x2c0</span>, <span class="tk-s">&quot;fish&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x2d0</span>, <span class="tk-s">&quot;dollar_sign&quot;</span>, <span class="tk-n">0xffffffff</span>u, <span class="tk-n">0.5000f</span>},
+    {<span class="tk-n">0x330</span>, <span class="tk-s">&quot;cargo_pickup&quot;</span>, <span class="tk-n">0xff000000</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x340</span>, <span class="tk-s">&quot;flag1&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x350</span>, <span class="tk-s">&quot;flag2&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x360</span>, <span class="tk-s">&quot;house&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x370</span>, <span class="tk-s">&quot;car&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x380</span>, <span class="tk-s">&quot;plane2&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x390</span>, <span class="tk-s">&quot;tank&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x3a0</span>, <span class="tk-s">&quot;helicopter&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x3b0</span>, <span class="tk-s">&quot;ship2&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x3c0</span>, <span class="tk-s">&quot;small_boat&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x3d0</span>, <span class="tk-s">&quot;attack&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+    {<span class="tk-n">0x3e0</span>, <span class="tk-s">&quot;defence&quot;</span>, <span class="tk-n">0xff000064</span>u, <span class="tk-n">0.6000f</span>},
+};
+
+<span class="tk-c">// A region of the atlas, as the XML has it.</span>
+<span class="tk-kw">struct</span> Region {
+    <span class="tk-kw">std</span>::<span class="tk-kw">string</span> name;
+    <span class="tk-kw">float</span> l = <span class="tk-n">0</span>, r = <span class="tk-n">0</span>, b = <span class="tk-n">0</span>, t = <span class="tk-n">0</span>;
+};
+
+<span class="tk-c">// The regions of the XML of the game (rom/graphics/ui/map/atlas_mapicons.xml).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">read_regions</span>(<span class="tk-kw">std</span>::vector&lt;Region&gt;&amp; out, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-kw">struct</span> CustomIcon {
+    <span class="tk-kw">std</span>::<span class="tk-kw">string</span> name;
+    <span class="tk-kw">int</span> x = <span class="tk-n">0</span>, y = <span class="tk-n">0</span>, width = <span class="tk-n">0</span>, height = <span class="tk-n">0</span>;   <span class="tk-c">// in pixels of the atlas</span>
+};
+
+<span class="tk-c">// Puts a picture (width and height multiples of 4, at most 256) into the first free place</span>
+<span class="tk-c">// of the atlas and writes the two new files. Names must be new (not a region of the game).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">add_icon</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; name, <span class="tk-kw">const</span> gfx::Image&amp; picture, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-kw">std</span>::vector&lt;CustomIcon&gt; <span class="tk-f">custom_icons</span>();
+
+<span class="tk-c">// Hooks graphic_atlas_add_sprites so that the game reads the custom description.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">redirect_atlas</span>(<span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMarkerDraw = <span class="tk-n">0x6a3a20</span>;        <span class="tk-c">// draws one map object (924 bytes)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMarkerSwitchCmp = <span class="tk-n">0x6a3c57</span>;    <span class="tk-c">// cmp eax, 0x13</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMarkerTableLoad = <span class="tk-n">0x6a3c69</span>;    <span class="tk-c">// mov edx, [rcx+rax*4+disp32]</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMarkerTable = <span class="tk-n">0x6a3d6c</span>;        <span class="tk-c">// 20 int32 RVAs</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMarkerCommon = <span class="tk-n">0x6a3d36</span>;       <span class="tk-c">// the common tail: r8 = slot, call 0x69f800</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMarkerDefault = <span class="tk-n">0x6a3d54</span>;      <span class="tk-c">// draws nothing</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">int</span> kFirstCustomMarkerType = <span class="tk-n">20</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">int</span> kMaxCustomMarkerTypes = <span class="tk-n">16</span>;
+
+<span class="tk-c">// Adds a marker type that shows the region `region` (of the game or of add_icon) with this</span>
+<span class="tk-c">// colour (ARGB) and scale; returns its number (20, 21, ...) or -1 (error says why). The</span>
+<span class="tk-c">// first call patches the switch. Call it before the map is drawn.</span>
+<span class="tk-kw">int</span> <span class="tk-f">add_marker_type</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; region, <span class="tk-kw">std</span>::uint32_t argb, <span class="tk-kw">float</span> scale, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-c">// The number of marker types added, and how many have a slot in the map now.</span>
+<span class="tk-kw">int</span> <span class="tk-f">marker_type_count</span>();
+<span class="tk-kw">int</span> <span class="tk-f">marker_slots_built</span>();
+
+<span class="tk-c">// Forgets the custom icons and deletes the two files.</span>
+<span class="tk-kw">void</span> <span class="tk-f">clear</span>();
+
+}  <span class="tk-c">// namespace sw::mapicons</span></code></pre></div><section class="related"><h2>Related</h2><ul><li><a href="../../reference/overview/">API wiki overview</a> <span>API Wiki</span></li></ul></section></article><nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../reference/h-instances/"><span>Previous</span>sw/instances.hpp</a><a class="next" href="../../reference/h-mesh/"><span>Next</span>sw/mesh.hpp</a></nav><p class="edit">Documentation for game build 1.15.26. Found a mistake? <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">Open an issue</a>.</p></main><aside class="toc"></aside></div>
+<div class="search-modal" id="search-modal" hidden><div class="search-backdrop" data-close></div><div class="search-panel" role="dialog" aria-modal="true" aria-label="Search documentation"><div class="search-input"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><input id="search-q" type="search" placeholder="Search the documentation" autocomplete="off" spellcheck="false" aria-controls="search-results"><kbd>Esc</kbd></div><ul id="search-results" class="search-results" role="listbox"></ul><div class="search-foot"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div></div></div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

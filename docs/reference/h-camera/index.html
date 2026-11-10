@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sw/camera.hpp - DeltaLoader</title>
+<meta name="description" content="The editor camera and the view camera of a world.">
+<script>try{var t=localStorage.getItem("dl-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/docs.css">
+<link rel="icon" href="../../assets/logo.png" type="image/png">
+</head>
+<body data-root="../../">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><div class="topbar-in"><button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button><a class="brand" href="../../"><img src="../../assets/logo.png" alt="" width="28" height="28"><span>DeltaLoader</span><em>Docs</em></a><nav class="topnav" aria-label="Main"><a href="../../getting-started/introduction/">Getting Started</a><a href="../../players/installing-mods/">Players</a><a href="../../developer/environment/">Developers</a><a href="../../technical/architecture/">Technical</a><a href="../../resources/downloads/">Resources</a><a href="../../reference/overview/" class="on">API wiki</a></nav><div class="topbar-end"><button class="search-btn" id="search-open" type="button" aria-label="Search documentation"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><span>Search</span><kbd>Ctrl K</kbd></button><label class="version"><span class="sr">Documentation version</span><select id="version" aria-label="Documentation version"><option value="1.15.26" selected>Game 1.15.26 (current)</option></select></label><button class="icon-btn" id="theme" type="button" aria-label="Switch colour theme" title="Light / dark"><svg class="i-moon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M15.8 10.8A6.6 6.6 0 0 1 7.2 2.2 6.6 6.6 0 1 0 15.8 10.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><svg class="i-sun" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v1.8M9 14.7v1.8M1.5 9h1.8M14.7 9h1.8M3.7 3.7l1.3 1.3M13 13l1.3 1.3M14.3 3.7 13 5M5 13l-1.3 1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button><a class="icon-btn" href="https://github.com/DeltaV-Modding/DeltaLoader" rel="noopener" aria-label="GitHub"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></div></div></header>
+<div class="layout"><nav class="sidebar" id="sidebar" aria-label="Documentation"><details class="nav-group"><summary><span>Getting Started</span><span class="count">7</span></summary><ul><li><a href="../../getting-started/introduction/">Introduction</a></li><li><a href="../../getting-started/requirements/">System requirements</a></li><li><a href="../../getting-started/installation/">Installation</a></li><li><a href="../../getting-started/first-launch/">First launch</a></li><li><a href="../../getting-started/updating/">Updating the loader</a></li><li><a href="../../getting-started/uninstallation/">Uninstallation</a></li><li><a href="../../getting-started/faq/">Frequently asked questions</a></li></ul></details><details class="nav-group"><summary><span>Players</span><span class="count">10</span></summary><ul><li><a href="../../players/installing-mods/">Installing mods</a></li><li><a href="../../players/removing-mods/">Removing mods</a></li><li><a href="../../players/updating-mods/">Updating mods</a></li><li><a href="../../players/configuration/">Mod configuration</a></li><li><a href="../../players/dependencies/">Mod dependencies</a></li><li><a href="../../players/compatibility/">Mod compatibility</a></li><li><a href="../../players/profiles/">Mod profiles</a></li><li><a href="../../players/troubleshooting/">Troubleshooting</a></li><li><a href="../../players/error-messages/">Understanding error messages</a></li><li><a href="../../players/logs/">Log files and crash reports</a></li></ul></details><details class="nav-group"><summary><span>Developers</span><span class="count">12</span></summary><ul><li><a href="../../developer/environment/">Development environment setup</a></li><li><a href="../../developer/first-mod/">Creating your first mod</a></li><li><a href="../../developer/project-structure/">Project structure</a></li><li><a href="../../developer/manifest/">Mod manifest and metadata</a></li><li><a href="../../developer/lifecycle/">Mod lifecycle</a></li><li><a href="../../developer/hooks/">Events and hooks</a></li><li><a href="../../developer/api/">API reference</a></li><li><a href="../../developer/dependency-management/">Dependency management</a></li><li><a href="../../developer/inter-mod/">Inter-mod communication</a></li><li><a href="../../developer/config-api/">Configuration API</a></li><li><a href="../../developer/debugging/">Logging and debugging</a></li><li><a href="../../developer/publishing/">Packaging and publishing mods</a></li></ul></details><details class="nav-group"><summary><span>Technical</span><span class="count">9</span></summary><ul><li><a href="../../technical/architecture/">Loader architecture</a></li><li><a href="../../technical/discovery/">Mod discovery</a></li><li><a href="../../technical/loading-pipeline/">Mod loading pipeline</a></li><li><a href="../../technical/dependency-resolution/">Dependency resolution</a></li><li><a href="../../technical/assembly-loading/">Assembly loading</a></li><li><a href="../../technical/runtime-integration/">Runtime integration</a></li><li><a href="../../technical/compatibility-system/">Compatibility system</a></li><li><a href="../../technical/version-management/">Version management</a></li><li><a href="../../technical/internal-apis/">Internal APIs</a></li></ul></details><details class="nav-group"><summary><span>Resources</span><span class="count">8</span></summary><ul><li><a href="../../resources/downloads/">Downloads</a></li><li><a href="../../resources/changelog/">Changelog</a></li><li><a href="../../resources/release-history/">Release history</a></li><li><a href="../../resources/game-versions/">Supported game versions</a></li><li><a href="../../resources/platforms/">Supported platforms</a></li><li><a href="../../resources/community/">Community links</a></li><li><a href="../../resources/github/">GitHub repository</a></li><li><a href="../../resources/contributing/">Contributing guidelines</a></li></ul></details><details class="nav-group" open><summary><span>API wiki</span><span class="count">36</span></summary><ul><li><a href="../../reference/overview/">API wiki overview</a></li><li><a href="../../reference/sdk-layout/">SDK layout and build system</a></li><li><a href="../../reference/recipes/">Recipes</a></li><li><a href="../../reference/generated/">Generated tables</a></li><li><a href="../../reference/h-audio/">sw/audio.hpp</a></li><li><a href="../../reference/h-camera/" aria-current="page" class="active">sw/camera.hpp</a></li><li><a href="../../reference/h-console/">sw/console.hpp</a></li><li><a href="../../reference/h-discord/">sw/discord.hpp</a></li><li><a href="../../reference/h-events/">sw/events.hpp</a></li><li><a href="../../reference/h-flags/">sw/flags.hpp</a></li><li><a href="../../reference/h-game/">sw/game.hpp</a></li><li><a href="../../reference/h-game-state/">sw/game_state.hpp</a></li><li><a href="../../reference/h-hook/">sw/hook.hpp</a></li><li><a href="../../reference/h-input/">sw/input.hpp</a></li><li><a href="../../reference/h-instances/">sw/instances.hpp</a></li><li><a href="../../reference/h-mapicons/">sw/mapicons.hpp</a></li><li><a href="../../reference/h-mesh/">sw/mesh.hpp</a></li><li><a href="../../reference/h-mod/">sw/mod.hpp</a></li><li><a href="../../reference/h-network/">sw/network.hpp</a></li><li><a href="../../reference/h-obj/">sw/obj.hpp</a></li><li><a href="../../reference/h-overlay/">sw/overlay.hpp</a></li><li><a href="../../reference/h-physics/">sw/physics.hpp</a></li><li><a href="../../reference/h-render/">sw/render.hpp</a></li><li><a href="../../reference/h-runtime/">sw/runtime.hpp</a></li><li><a href="../../reference/h-settings/">sw/settings.hpp</a></li><li><a href="../../reference/h-signature/">sw/signature.hpp</a></li><li><a href="../../reference/h-start-tiles/">sw/start_tiles.hpp</a></li><li><a href="../../reference/h-textures/">sw/textures.hpp</a></li><li><a href="../../reference/h-tiles/">sw/tiles.hpp</a></li><li><a href="../../reference/h-trees/">sw/trees.hpp</a></li><li><a href="../../reference/h-ui/">sw/ui.hpp</a></li><li><a href="../../reference/h-vehicle/">sw/vehicle.hpp</a></li><li><a href="../../reference/h-vfs/">sw/vfs.hpp</a></li><li><a href="../../reference/h-views/">sw/views.hpp</a></li><li><a href="../../reference/h-weather/">sw/weather.hpp</a></li><li><a href="../../reference/h-world/">sw/world.hpp</a></li></ul></details><div class="side-help"><strong>Need help?</strong>Ask on the <a href="https://discord.gg/HH3ezeD8BD" rel="noopener">Discord server</a> or open an <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">issue on GitHub</a>.</div></nav><div class="scrim" id="scrim"></div><main class="content" id="main"><article><ol class="crumbs" aria-label="Breadcrumb"><li><a href="../../">Home</a></li><li><a href="../../reference/overview/">API Wiki</a></li><li aria-current="page">sw/camera.hpp</li></ol><h1>sw/camera.hpp</h1><p class="lead">The editor camera and the view camera of a world.</p><p>Source: <a href="https://github.com/DeltaV-Modding/DeltaLoader/blob/main/include/sw/camera.hpp" rel="noopener">include/sw/camera.hpp</a></p>
+<div class="code"><div class="code-bar"><span class="code-lang">camera.hpp</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code class="lang-cpp"><span class="tk-c">// camera.hpp - the cameras of the game, the orbit mode of the vehicle editor and</span>
+<span class="tk-c">// the view camera of a world (the camera the player looks through).</span>
+<span class="tk-c">//</span>
+<span class="tk-c">// The editor part (REPORT 3.99): the classes, the texts of the camera buttons and</span>
+<span class="tk-c">// where the editor builds them; the callback that switches orbit and free mode was</span>
+<span class="tk-c">// not found.</span>
+<span class="tk-c">//</span>
+<span class="tk-c">// The view part (REPORT 3.156) was read in the bytes of 1.15.25 (build 26275574) and</span>
+<span class="tk-c">// carried to 1.15.26 by the strict fingerprints of anchors.tsv (same code, +0x30):</span>
+<span class="tk-c">//   * mm_camera_perspective (RTTI vtable 0xb02940) keeps its world transform as a</span>
+<span class="tk-c">//     double 4x4 at +0x08 (columns right, up, forward, position) and the vertical</span>
+<span class="tk-c">//     field of view in radians as a float at +0x278. Its slot 0 (0x194680) builds</span>
+<span class="tk-c">//     the view matrix from exactly these fields: forward = column 2, and the look-at</span>
+<span class="tk-c">//     helper 0x1783e0 negates it into the third row (the camera looks along +col 2).</span>
+<span class="tk-c">//   * The scene draw 0x7b01a0 (rcx = scene; `btIDebugDraw::ctor` in symbols.tsv, a</span>
+<span class="tk-c">//     wrong vtable label) passes scene + 0x1010 as the first camera to</span>
+<span class="tk-c">//     renderer_draw_frame (0x6d4de0, 6th argument; the 5th is the pipeline) and to the culling call before it;</span>
+<span class="tk-c">//     the frame function copies cam + 8 and cam + 0x278 into its own camera.</span>
+<span class="tk-c">// So a pose written into scene + 0x1010 at the entry of the scene draw is the pose</span>
+<span class="tk-c">// the frame is culled and drawn with. Not proven: who writes the camera between two</span>
+<span class="tk-c">// frames (set_view() keeps the game's own last pose and puts it back on release), and</span>
+<span class="tk-c">// nothing of this was run in the game.</span>
+<span class="tk-c">//</span>
+<span class="tk-c">//   #include &quot;sw/camera.hpp&quot;</span>
+<span class="tk-c">//</span>
+<span class="tk-c">//   sw::camera::watch_view();</span>
+<span class="tk-c">//   sw::camera::set_view(sw::camera::look_at({0, 20, 0}, {50, 5, 50}, 1.0f));</span>
+<span class="tk-c">//   sw::camera::release_view();</span>
+
+<span class="tk-p">#include &lt;cstddef&gt;</span>
+<span class="tk-p">#include &lt;cstdint&gt;</span>
+
+<span class="tk-kw">namespace</span> sw::camera {
+
+<span class="tk-c">// The mode of the camera of the vehicle editor.</span>
+<span class="tk-kw">enum</span> <span class="tk-kw">class</span> Mode { orbit, free };
+
+<span class="tk-c">// Hooks the tick of the camera shelf (0x617270) so that the shelf is known and a</span>
+<span class="tk-c">// requested mode can be applied on the thread of the game. False if the game does</span>
+<span class="tk-c">// not match or the hook fails.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">watch</span>();
+
+<span class="tk-c">// The shelf of the editor exists (it was ticked in the last moments).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">shelf_ready</span>();
+
+<span class="tk-c">// Selects the mode, as if the player clicked its button: the request is applied at</span>
+<span class="tk-c">// the next tick of the shelf by the game's own group function (0x24d2c0), which</span>
+<span class="tk-c">// switches the other toggle off. False before watch(). The shelf only exists while</span>
+<span class="tk-c">// the vehicle editor is open.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">set_mode</span>(Mode mode);
+
+<span class="tk-c">// The mode that is on now (the state of the &quot;Orbit Mode&quot; toggle). False if the</span>
+<span class="tk-c">// shelf is not there.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">mode</span>(Mode&amp; out);
+
+<span class="tk-c">// Classes of the cameras of the scene (RTTI, stormworks64.exe 1.15.25).</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableCamera = <span class="tk-n">0xb0c2f0</span>;               <span class="tk-c">// mm_camera</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableCameraPerspective = <span class="tk-n">0xb02940</span>;    <span class="tk-c">// mm_camera_perspective</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableCameraOrthographic = <span class="tk-n">0xb942e0</span>;   <span class="tk-c">// mm_camera_orthographic</span>
+<span class="tk-c">// mm_camera_orthographic_inside, c_scene_vehicle_component_camera (the camera</span>
+<span class="tk-c">// component of a vehicle) exist as classes; their vtables were not read.</span>
+
+<span class="tk-c">// The vehicle editor: a tool shelf with the camera settings. &quot;Orbit Mode&quot; turns</span>
+<span class="tk-c">// the camera around the vehicle, &quot;Free Mode&quot; moves it freely, &quot;Reset Camera&quot;</span>
+<span class="tk-c">// returns it (REPORT 3.99).</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableCameraToolshelf = <span class="tk-n">0xb492b0</span>;      <span class="tk-c">// camera_toolshelf</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaCameraToolshelfBuild = <span class="tk-n">0x617470</span>;    <span class="tk-c">// slot 1, 955 bytes</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaCameraToolshelfTick = <span class="tk-n">0x617270</span>;     <span class="tk-c">// slot 3, 178 bytes</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaToggleGroupSelect = <span class="tk-n">0x24d2c0</span>;       <span class="tk-c">// (group, unused, member)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffToolshelfGroup = <span class="tk-n">0x78</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffToggleMember = <span class="tk-n">0x100</span>;                 <span class="tk-c">// member object inside a toggle button</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kSlotToggleIsOn = <span class="tk-n">1</span>;                      <span class="tk-c">// vtable slot of the member</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kLocResetCamera = <span class="tk-n">0x4fe</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kLocOrbitMode = <span class="tk-n">0x4ff</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kLocFreeMode = <span class="tk-n">0x500</span>;
+<span class="tk-c">// The two toggles are in a group (0x24d2c0, REPORT 3.100): for every member except the</span>
+<span class="tk-c">// one that was clicked, if its slot 1 says it is on, its slot 0 is called (it is</span>
+<span class="tk-c">// switched off); then the clicked one is set to the opposite of its own state (slot</span>
+<span class="tk-c">// 1 returns it, slot 0 sets it). So exactly one of &quot;Orbit Mode&quot; and &quot;Free Mode&quot; is</span>
+<span class="tk-c">// on. The slide-in of the shelf is slot 3 (0x617270: it eases a position towards</span>
+<span class="tk-c">// 0 or the width). Which code reads the toggle to switch the camera was not found.</span>
+<span class="tk-c">// set_mode() calls the group function with the toggle's inner object (button + 0x100,</span>
+<span class="tk-c">// as 0x617470 does at its end): (group = shelf + 0x78, unused, member).</span>
+<span class="tk-c">// The shelf object: the toggle &quot;Orbit Mode&quot; at +0xa0 (index 0x14), &quot;Free Mode&quot; at</span>
+<span class="tk-c">// +0xa8 (index 0x15), the group of the two at +0x78 (index 0xf).</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffToolshelfOrbitButton = <span class="tk-n">0xa0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffToolshelfFreeButton = <span class="tk-n">0xa8</span>;
+
+<span class="tk-c">// Events between the game and the logic thread that concern a camera (RTTI names,</span>
+<span class="tk-c">// the vtables were not read).</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kCameraEvents[] = {
+    <span class="tk-s">&quot;c_event_game_to_logic_set_camera_controller_status&quot;</span>,
+    <span class="tk-s">&quot;c_event_logic_to_game_set_camera_orientation&quot;</span>,
+    <span class="tk-s">&quot;c_event_logic_to_game_add_camera_shake&quot;</span>,
+    <span class="tk-s">&quot;c_event_game_to_logic_toggle_cinematic_camera&quot;</span>,
+    <span class="tk-s">&quot;c_event_game_to_logic_set_map_camera_data&quot;</span>,
+    <span class="tk-s">&quot;c_event_logic_to_game_set_map_camera_transforms&quot;</span>,
+    <span class="tk-s">&quot;c_event_game_to_logic_set_photo_mode_camera_parameters&quot;</span>,
+    <span class="tk-s">&quot;c_event_logic_to_game_set_camera_to_photo_mode_ui&quot;</span>,
+    <span class="tk-s">&quot;c_server_to_client_event_set_camera_position&quot;</span>,
+};
+
+<span class="tk-c">// ---------------------------------------------------------------------------</span>
+<span class="tk-c">// The view camera of a world (REPORT 3.156).</span>
+
+<span class="tk-kw">struct</span> Vec3 {
+    <span class="tk-kw">double</span> x = <span class="tk-n">0</span>, y = <span class="tk-n">0</span>, z = <span class="tk-n">0</span>;
+};
+
+<span class="tk-c">// A pose of the view camera: where it is, where it looks, its up vector and its</span>
+<span class="tk-c">// vertical field of view in radians (0 = keep the field of view of the game).</span>
+<span class="tk-kw">struct</span> Pose {
+    Vec3 eye;
+    Vec3 forward{<span class="tk-n">0</span>, <span class="tk-n">0</span>, <span class="tk-n">1</span>};
+    Vec3 up{<span class="tk-n">0</span>, <span class="tk-n">1</span>, <span class="tk-n">0</span>};
+    <span class="tk-kw">float</span> fov = <span class="tk-n">0.0f</span>;
+};
+
+<span class="tk-c">// The camera at eye that looks at target (world up = +y).</span>
+Pose <span class="tk-f">look_at</span>(<span class="tk-kw">const</span> Vec3&amp; eye, <span class="tk-kw">const</span> Vec3&amp; target, <span class="tk-kw">float</span> fov = <span class="tk-n">0.0f</span>);
+
+<span class="tk-c">// The double 4x4 that mm_camera_perspective keeps at +8, built from a pose:</span>
+<span class="tk-c">// columns right = normalize(up x forward), up = forward x right, forward, eye: det +1, the</span>
+<span class="tk-c">// handedness of the game's own view camera (REPORT 3.156e). The view hook also compares the sign</span>
+<span class="tk-c">// with the game's transform and negates column 0 if they differ, so the faces keep their winding.</span>
+<span class="tk-c">// False if forward is zero or parallel to up.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">transform_from_pose</span>(<span class="tk-kw">const</span> Pose&amp; pose, <span class="tk-kw">double</span> out[<span class="tk-n">16</span>]);
+
+<span class="tk-c">// The other way round (fov is left 0).</span>
+Pose <span class="tk-f">pose_from_transform</span>(<span class="tk-kw">const</span> <span class="tk-kw">double</span> m[<span class="tk-n">16</span>]);
+
+<span class="tk-c">// Blend of two poses: eye and fov linear, forward and up normalised linear.</span>
+<span class="tk-c">// t outside 0..1 is clamped.</span>
+Pose <span class="tk-f">blend</span>(<span class="tk-kw">const</span> Pose&amp; a, <span class="tk-kw">const</span> Pose&amp; b, <span class="tk-kw">double</span> t);
+
+<span class="tk-c">// Hooks the scene draw (0x7b01a0) after checking its bytes. From then on the</span>
+<span class="tk-c">// camera at scene + 0x1010 is read every frame (view_game_pose) and, while a view is</span>
+<span class="tk-c">// set, overwritten before the frame is culled and drawn. False if the game does not</span>
+<span class="tk-c">// match or the hook fails.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">watch_view</span>();
+
+<span class="tk-c">// A frame was drawn in the last half second (a world is open).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">view_ready</span>();
+
+<span class="tk-c">// The pose the game itself gave the camera last (fov included). False before the</span>
+<span class="tk-c">// first frame.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">view_game_pose</span>(Pose&amp; out);
+
+<span class="tk-c">// From the next frame on the camera shows this pose (until release_view). A pose</span>
+<span class="tk-c">// with fov 0 keeps the game's field of view.</span>
+<span class="tk-kw">void</span> <span class="tk-f">set_view</span>(<span class="tk-kw">const</span> Pose&amp; pose);
+
+<span class="tk-c">// A function that gives the pose for every frame, on the thread of the game, at the</span>
+<span class="tk-c">// entry of the scene draw: (pose of the game, out) -&gt; true to override this frame.</span>
+<span class="tk-c">// Keep it short. Replaces set_view; nullptr removes it.</span>
+<span class="tk-kw">using</span> ViewProvider = <span class="tk-kw">bool</span> (*)(<span class="tk-kw">const</span> Pose&amp; game, Pose&amp; out, <span class="tk-kw">void</span>* user);
+<span class="tk-kw">void</span> <span class="tk-f">set_view_provider</span>(ViewProvider provider, <span class="tk-kw">void</span>* user);
+
+<span class="tk-c">// Gives the camera back to the game: the next frame shows the game's own pose.</span>
+<span class="tk-kw">void</span> <span class="tk-f">release_view</span>();
+
+<span class="tk-c">// A view is set (set_view or a provider that returned true last frame).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">view_overridden</span>();
+
+<span class="tk-c">// Whether the frame's draw lists are culled from the story camera while a view is set (on by default).</span>
+<span class="tk-c">// The game's camera follows that same view, so a blend back to the player turns it off: otherwise the</span>
+<span class="tk-c">// pose of the game would be the story camera's and the blend would have nowhere to go.</span>
+<span class="tk-kw">void</span> <span class="tk-f">set_view_culls</span>(<span class="tk-kw">bool</span> on);
+
+<span class="tk-c">// What the view hooks saw (for a log when a shot does not show). watch_view() also hooks the entry of</span>
+<span class="tk-c">// renderer_draw_frame: when its 6th argument is the camera of the scene draw, the pose written at the</span>
+<span class="tk-c">// scene draw is checked there and written again if something changed it in between.</span>
+<span class="tk-kw">struct</span> ViewStats {
+    <span class="tk-kw">std</span>::uint64_t scene_draws = <span class="tk-n">0</span>;    <span class="tk-c">// calls of the scene draw with a perspective camera at +0x1010</span>
+    <span class="tk-kw">std</span>::uint64_t renders = <span class="tk-n">0</span>;        <span class="tk-c">// calls of renderer_draw_frame</span>
+    <span class="tk-kw">std</span>::uint64_t renders_scene = <span class="tk-n">0</span>;  <span class="tk-c">// ... whose 6th argument was that camera</span>
+    <span class="tk-kw">std</span>::uint64_t written = <span class="tk-n">0</span>;        <span class="tk-c">// frames the pose was written at the scene draw</span>
+    <span class="tk-kw">std</span>::uint64_t intact = <span class="tk-n">0</span>;         <span class="tk-c">// ... and still there at the renderer</span>
+    <span class="tk-kw">std</span>::uint64_t rewritten = <span class="tk-n">0</span>;      <span class="tk-c">// ... changed in between and written again at the renderer</span>
+    <span class="tk-kw">bool</span> mirrored = <span class="tk-kw">false</span>;            <span class="tk-c">// the game's camera is mirrored (det &lt; 0); poses are written that way</span>
+    <span class="tk-kw">std</span>::uint64_t others_written = <span class="tk-n">0</span>; <span class="tk-c">// writes into the renderer's 7th and 8th camera (scene + 0x1510, + 0x1290)</span>
+    <span class="tk-kw">std</span>::uint64_t culling = <span class="tk-n">0</span>;        <span class="tk-c">// frames the three cameras got the pose and their matrices right after the controller</span>
+    <span class="tk-kw">std</span>::uint64_t tiles = <span class="tk-n">0</span>;          <span class="tk-c">// calls of the tile visibility whose centre was moved to the story camera</span>
+    Vec3 tile_centre;                 <span class="tk-c">// the centre the game gave the last of them (the player's view)</span>
+    <span class="tk-kw">std</span>::uint64_t frame_views = <span class="tk-n">0</span>;    <span class="tk-c">// logic ticks whose draw lists were culled from the story camera</span>
+    Vec3 frame_eye;                   <span class="tk-c">// the player's position in the logic's view at the last of them</span>
+    Vec3 frame_player_fwd;            <span class="tk-c">// ... the forward of that view (before writing)</span>
+    Vec3 frame_event_fwd;             <span class="tk-c">// ... the forward of the viewer's pose the camera event brought (logic + 0xa88)</span>
+    Vec3 frame_event_eye;             <span class="tk-c">// ... and its position (logic + 0xa70)</span>
+    Vec3 frame_story_fwd;             <span class="tk-c">// ... and the story camera's forward written there</span>
+    <span class="tk-kw">std</span>::uint64_t look_held = <span class="tk-n">0</span>;      <span class="tk-c">// controller updates that ran with the player's look set to the identity</span>
+    Vec3 scene_eye;                   <span class="tk-c">// where the camera was at the last scene draw (before writing)</span>
+    Vec3 render_eye;                  <span class="tk-c">// where the 6th argument's camera was at the last renderer entry</span>
+    Vec3 render_eye7, render_eye8;    <span class="tk-c">// ... and the 7th and 8th argument's cameras (before writing)</span>
+    Vec3 origin;                      <span class="tk-c">// the render origin at the last renderer entry (3 doubles at its 3rd argument)</span>
+};
+ViewStats <span class="tk-f">view_stats</span>();
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaSceneDraw = <span class="tk-n">0x7b01a0</span>;              <span class="tk-c">// (scene, ...) per frame, calls renderer_draw_frame</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaCameraPerspectiveCompute = <span class="tk-n">0x194680</span>; <span class="tk-c">// slot 0 of mm_camera_perspective (1333 bytes)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaRendererDrawFrame = <span class="tk-n">0x6d4de0</span>;        <span class="tk-c">// the camera is its 6th argument</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffSceneViewCamera = <span class="tk-n">0x1010</span>;              <span class="tk-c">// the view camera inside the scene (an offset, swupdate:keep)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffCameraTransform = <span class="tk-n">0x08</span>;                <span class="tk-c">// double[16], column major</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffCameraFov = <span class="tk-n">0x278</span>;                     <span class="tk-c">// float, radians, vertical</span>
+<span class="tk-c">// The bytes watch_view() checks before it hooks (and the API test checks in the file).</span>
+<span class="tk-c">// The first 15 bytes of the scene draw: mov rax,rsp; push rbp/rbx/rsi/rdi/r12..r15.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kSceneDrawPrologue[<span class="tk-n">15</span>] = {<span class="tk-n">0x48</span>, <span class="tk-n">0x8b</span>, <span class="tk-n">0xc4</span>, <span class="tk-n">0x55</span>, <span class="tk-n">0x53</span>, <span class="tk-n">0x56</span>, <span class="tk-n">0x57</span>, <span class="tk-n">0x41</span>,
+                                                        <span class="tk-n">0x54</span>, <span class="tk-n">0x41</span>, <span class="tk-n">0x55</span>, <span class="tk-n">0x41</span>, <span class="tk-n">0x56</span>, <span class="tk-n">0x41</span>, <span class="tk-n">0x57</span>};
+<span class="tk-c">// lea rdx,[r14+0x1010] (stored to [rsp+0x28]): the view camera as the 6th argument of renderer_draw_frame.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kSceneDrawCameraArgAt = <span class="tk-n">0x7d4</span>;            <span class="tk-c">// from the start of the scene draw</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kSceneDrawCameraArg[<span class="tk-n">7</span>] = {<span class="tk-n">0x49</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0x96</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>};
+<span class="tk-c">// lea rdx,[rdi+8] (copy of the transform) and movss xmm0,[rdi+0x278] (the fov) in renderer_draw_frame.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kFrameCopyTransformAt = <span class="tk-n">0x104</span>;            <span class="tk-c">// from the start of renderer_draw_frame</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kFrameCopyTransform[<span class="tk-n">4</span>] = {<span class="tk-n">0x48</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0x57</span>, <span class="tk-n">0x08</span>};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kFrameCopyFovAt = <span class="tk-n">0x17f</span>;
+<span class="tk-c">// The camera controller (REPORT 3.156f): an object at scene + 0xce8 owns the three cameras</span>
+<span class="tk-c">// (+0x328 = scene + 0x1010, +0x828 = scene + 0x1510, +0x5a8 = scene + 0x1290). Its update 0x71a170</span>
+<span class="tk-c">// (called by the scene draw) writes each transform from the player and calls 0x719f50, which adds the</span>
+<span class="tk-c">// head offsets, sets the fov from controller + 0x1c4 and tail-calls the camera's slot 0 (compute:</span>
+<span class="tk-c">// view, projection and the matrices the culling reads) with the aspect at graphics state + 0x900.</span>
+<span class="tk-c">// The scene draw calls 0x71be90 on the controller next: hooked there, the pose and its matrices are in</span>
+<span class="tk-c">// place before anything is culled or drawn.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaCameraControllerUpdate = <span class="tk-n">0x71a170</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaAfterControllerUpdate = <span class="tk-n">0x71be90</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaControllerCameraFinish = <span class="tk-n">0x719f50</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffSceneController = <span class="tk-n">0xce8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffControllerCamera[<span class="tk-n">3</span>] = {<span class="tk-n">0x328</span>, <span class="tk-n">0x828</span>, <span class="tk-n">0x5a8</span>};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffGraphicsAspect = <span class="tk-n">0x900</span>;
+<span class="tk-c">// lea rcx,[r14+0xce8]; call 0x71be90 in the scene draw</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kSceneDrawAfterControllerAt = <span class="tk-n">0x2a9</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kSceneDrawAfterController[<span class="tk-n">8</span>] = {<span class="tk-n">0x49</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0x8e</span>, <span class="tk-n">0xe8</span>, <span class="tk-n">0x0c</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0xe8</span>};
+<span class="tk-c">// The player's look in the controller (REPORT 3.156k): 0x71b630 (called right before the update) adds the</span>
+<span class="tk-c">// mouse to the yaw at +0x2a0 and the pitch at +0x2a4 and builds the 3x3 at +0x2dc; the update turns them</span>
+<span class="tk-c">// into a rotation (yaw x pitch x roll +0x2c0, or the seat yaw +0x2c4 when +0x1a6 is set, then x the 3x3)</span>
+<span class="tk-c">// and puts it behind the frame's view: camera = view x look. Something culls from that camera before</span>
+<span class="tk-c">// 0x71be90, so while a shot holds the look is the identity during the update and put back at 0x71be90.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffControllerYaw = <span class="tk-n">0x2a0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffControllerPitch = <span class="tk-n">0x2a4</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffControllerRoll = <span class="tk-n">0x2c0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffControllerSeatYaw = <span class="tk-n">0x2c4</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffControllerLook = <span class="tk-n">0x2dc</span>;        <span class="tk-c">// float 3x3</span>
+<span class="tk-c">// movss xmm6,[rdi+X] in the update (yaw, pitch, roll, seat yaw) and lea r8,[rdi+0x2dc]</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kControllerLookReadAt[<span class="tk-n">5</span>] = {<span class="tk-n">0x1c6</span>, <span class="tk-n">0x1ed</span>, <span class="tk-n">0x250</span>, <span class="tk-n">0x103</span>, <span class="tk-n">0x317</span>};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kControllerLookRead[<span class="tk-n">5</span>][<span class="tk-n">8</span>] = {{<span class="tk-n">0xf3</span>, <span class="tk-n">0x0f</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0xb7</span>, <span class="tk-n">0xa0</span>, <span class="tk-n">0x02</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>},
+                                                           {<span class="tk-n">0xf3</span>, <span class="tk-n">0x0f</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0xb7</span>, <span class="tk-n">0xa4</span>, <span class="tk-n">0x02</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>},
+                                                           {<span class="tk-n">0xf3</span>, <span class="tk-n">0x0f</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0xb7</span>, <span class="tk-n">0xc0</span>, <span class="tk-n">0x02</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>},
+                                                           {<span class="tk-n">0xf3</span>, <span class="tk-n">0x0f</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0xb7</span>, <span class="tk-n">0xc4</span>, <span class="tk-n">0x02</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>},
+                                                           {<span class="tk-n">0x4c</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0x87</span>, <span class="tk-n">0xdc</span>, <span class="tk-n">0x02</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>}};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kControllerLookReadLen[<span class="tk-n">5</span>] = {<span class="tk-n">8</span>, <span class="tk-n">8</span>, <span class="tk-n">8</span>, <span class="tk-n">8</span>, <span class="tk-n">7</span>};
+<span class="tk-c">// lea r8,[rdi+0x328 / 0x828 / 0x5a8] before each call of 0x719f50 in the controller update</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kControllerCameraAt[<span class="tk-n">3</span>] = {<span class="tk-n">0xb37</span>, <span class="tk-n">0xba7</span>, <span class="tk-n">0xc17</span>};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kControllerCamera[<span class="tk-n">3</span>][<span class="tk-n">7</span>] = {{<span class="tk-n">0x4c</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0x87</span>, <span class="tk-n">0x28</span>, <span class="tk-n">0x03</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>},
+                                                         {<span class="tk-n">0x4c</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0x87</span>, <span class="tk-n">0x28</span>, <span class="tk-n">0x08</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>},
+                                                         {<span class="tk-n">0x4c</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0x87</span>, <span class="tk-n">0xa8</span>, <span class="tk-n">0x05</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>}};
+<span class="tk-c">// movss xmm1,[rdx+0x900] (the aspect) in 0x719f50</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kCameraFinishAspectAt = <span class="tk-n">0x1f4</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kCameraFinishAspect[<span class="tk-n">8</span>] = {<span class="tk-n">0xf3</span>, <span class="tk-n">0x0f</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0x8a</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x09</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>};
+<span class="tk-c">// The tile visibility (REPORT 3.156g): 0x579060 (tile level, const double centre[3], float radius, bool)</span>
+<span class="tk-c">// marks every cell within the radius of the centre visible (cell + 0x98) and the rest not; the logic</span>
+<span class="tk-c">// update calls it for both tile levels with the centre taken from the player's view (0x366650,</span>
+<span class="tk-c">// stored at logic + 0xac0). Hooked at its entry, the centre is moved to the story camera while a view is set.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTileVisibility = <span class="tk-n">0x579060</span>;
+<span class="tk-c">// mov rax,rsp; mov [rax+0x20],r9b ... movups xmm0,[rdx] (x, y) ... movsd xmm9,[rdx+0x10] (z)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kTileVisibilityPrologue[<span class="tk-n">7</span>] = {<span class="tk-n">0x48</span>, <span class="tk-n">0x8b</span>, <span class="tk-n">0xc4</span>, <span class="tk-n">0x44</span>, <span class="tk-n">0x88</span>, <span class="tk-n">0x48</span>, <span class="tk-n">0x20</span>};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kTileVisibilityCentreXAt = <span class="tk-n">0x11</span>;   <span class="tk-c">// swupdate:keep</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kTileVisibilityCentreX[<span class="tk-n">3</span>] = {<span class="tk-n">0x0f</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0x02</span>};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kTileVisibilityCentreZAt = <span class="tk-n">0x43</span>;   <span class="tk-c">// swupdate:keep</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kTileVisibilityCentreZ[<span class="tk-n">6</span>] = {<span class="tk-n">0xf2</span>, <span class="tk-n">0x44</span>, <span class="tk-n">0x0f</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0x4a</span>, <span class="tk-n">0x10</span>};
+<span class="tk-c">// The frame's draw lists (REPORT 3.156h): 0x6be1b0 is called by the logic once per tick (0x74cee2 in</span>
+<span class="tk-c">// the frame build 0x74c470) with the logic's view as its 5th argument (logic + 0xac0: the double 4x4</span>
+<span class="tk-c">// of the camera at +0, the one of the tick before at +0x80, the fov at +0x100) and the new frame</span>
+<span class="tk-c">// state as its 11th; it copies the view into the frame state (+0x5e8) and culls what the frame</span>
+<span class="tk-c">// draws - the terrain tiles among it - against it. Hooked at its entry, the view holds the story</span>
+<span class="tk-c">// camera while a shot holds.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaFrameLists = <span class="tk-n">0x6be1b0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffViewFov = <span class="tk-n">0x100</span>;               <span class="tk-c">// float in the logic's view (logic + 0xbc0)</span>
+<span class="tk-c">// The viewer's pose right in front of the view (logic + 0xa70, written by the game-to-logic camera event</span>
+<span class="tk-c">// that 0x71be90 builds from the controller's camera): double position[3], then a float 3x3 (columns</span>
+<span class="tk-c">// right / up / forward) at + 24. The draw lists get it as their 4th (position) and 3rd (rotation) argument.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffViewerPose = <span class="tk-n">0x50</span>;             <span class="tk-c">// the view minus this</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kViewerPoseBytes = <span class="tk-n">60</span>;
+<span class="tk-c">// push rbp/rbx/rsi/rdi/r12..r15; lea rbp,[rsp-0x8838]</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kFrameListsPrologue[<span class="tk-n">21</span>] = {<span class="tk-n">0x40</span>, <span class="tk-n">0x55</span>, <span class="tk-n">0x53</span>, <span class="tk-n">0x56</span>, <span class="tk-n">0x57</span>, <span class="tk-n">0x41</span>, <span class="tk-n">0x54</span>, <span class="tk-n">0x41</span>, <span class="tk-n">0x55</span>, <span class="tk-n">0x41</span>, <span class="tk-n">0x56</span>,
+                                                         <span class="tk-n">0x41</span>, <span class="tk-n">0x57</span>, <span class="tk-n">0x48</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0xac</span>, <span class="tk-n">0x24</span>, <span class="tk-n">0xc8</span>, <span class="tk-n">0x77</span>, <span class="tk-n">0xff</span>, <span class="tk-n">0xff</span>};
+<span class="tk-c">// mov r12,[rbp+0x88a0]: the 5th argument (rbp = entry rsp - 0x8878)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kFrameListsViewArgAt = <span class="tk-n">0xaf</span>;       <span class="tk-c">// swupdate:keep</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kFrameListsViewArg[<span class="tk-n">7</span>] = {<span class="tk-n">0x4c</span>, <span class="tk-n">0x8b</span>, <span class="tk-n">0xa5</span>, <span class="tk-n">0xa0</span>, <span class="tk-n">0x88</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>};
+<span class="tk-c">// lea rcx,[r13+0x5e8]; mov rdx,r12; call: the view copied into the frame state</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kFrameListsCopyAt = <span class="tk-n">0xf2</span>;          <span class="tk-c">// swupdate:keep</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kFrameListsCopy[<span class="tk-n">11</span>] = {<span class="tk-n">0x49</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0x8d</span>, <span class="tk-n">0xe8</span>, <span class="tk-n">0x05</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x49</span>, <span class="tk-n">0x8b</span>, <span class="tk-n">0xd4</span>, <span class="tk-n">0xe8</span>};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint8_t kFrameCopyFov[<span class="tk-n">8</span>] = {<span class="tk-n">0xf3</span>, <span class="tk-n">0x0f</span>, <span class="tk-n">0x10</span>, <span class="tk-n">0x87</span>, <span class="tk-n">0x78</span>, <span class="tk-n">0x02</span>, <span class="tk-n">0x00</span>, <span class="tk-n">0x00</span>};
+
+}  <span class="tk-c">// namespace sw::camera</span></code></pre></div><section class="related"><h2>Related</h2><ul><li><a href="../../reference/overview/">API wiki overview</a> <span>API Wiki</span></li></ul></section></article><nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../reference/h-audio/"><span>Previous</span>sw/audio.hpp</a><a class="next" href="../../reference/h-console/"><span>Next</span>sw/console.hpp</a></nav><p class="edit">Documentation for game build 1.15.26. Found a mistake? <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">Open an issue</a>.</p></main><aside class="toc"></aside></div>
+<div class="search-modal" id="search-modal" hidden><div class="search-backdrop" data-close></div><div class="search-panel" role="dialog" aria-modal="true" aria-label="Search documentation"><div class="search-input"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><input id="search-q" type="search" placeholder="Search the documentation" autocomplete="off" spellcheck="false" aria-controls="search-results"><kbd>Esc</kbd></div><ul id="search-results" class="search-results" role="listbox"></ul><div class="search-foot"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div></div></div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

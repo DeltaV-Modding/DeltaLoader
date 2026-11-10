@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sw/textures.hpp - DeltaLoader</title>
+<meta name="description" content="Read, change and write .txtr files.">
+<script>try{var t=localStorage.getItem("dl-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/docs.css">
+<link rel="icon" href="../../assets/logo.png" type="image/png">
+</head>
+<body data-root="../../">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><div class="topbar-in"><button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button><a class="brand" href="../../"><img src="../../assets/logo.png" alt="" width="28" height="28"><span>DeltaLoader</span><em>Docs</em></a><nav class="topnav" aria-label="Main"><a href="../../getting-started/introduction/">Getting Started</a><a href="../../players/installing-mods/">Players</a><a href="../../developer/environment/">Developers</a><a href="../../technical/architecture/">Technical</a><a href="../../resources/downloads/">Resources</a><a href="../../reference/overview/" class="on">API wiki</a></nav><div class="topbar-end"><button class="search-btn" id="search-open" type="button" aria-label="Search documentation"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><span>Search</span><kbd>Ctrl K</kbd></button><label class="version"><span class="sr">Documentation version</span><select id="version" aria-label="Documentation version"><option value="1.15.26" selected>Game 1.15.26 (current)</option></select></label><button class="icon-btn" id="theme" type="button" aria-label="Switch colour theme" title="Light / dark"><svg class="i-moon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M15.8 10.8A6.6 6.6 0 0 1 7.2 2.2 6.6 6.6 0 1 0 15.8 10.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><svg class="i-sun" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v1.8M9 14.7v1.8M1.5 9h1.8M14.7 9h1.8M3.7 3.7l1.3 1.3M13 13l1.3 1.3M14.3 3.7 13 5M5 13l-1.3 1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button><a class="icon-btn" href="https://github.com/DeltaV-Modding/DeltaLoader" rel="noopener" aria-label="GitHub"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></div></div></header>
+<div class="layout"><nav class="sidebar" id="sidebar" aria-label="Documentation"><details class="nav-group"><summary><span>Getting Started</span><span class="count">7</span></summary><ul><li><a href="../../getting-started/introduction/">Introduction</a></li><li><a href="../../getting-started/requirements/">System requirements</a></li><li><a href="../../getting-started/installation/">Installation</a></li><li><a href="../../getting-started/first-launch/">First launch</a></li><li><a href="../../getting-started/updating/">Updating the loader</a></li><li><a href="../../getting-started/uninstallation/">Uninstallation</a></li><li><a href="../../getting-started/faq/">Frequently asked questions</a></li></ul></details><details class="nav-group"><summary><span>Players</span><span class="count">10</span></summary><ul><li><a href="../../players/installing-mods/">Installing mods</a></li><li><a href="../../players/removing-mods/">Removing mods</a></li><li><a href="../../players/updating-mods/">Updating mods</a></li><li><a href="../../players/configuration/">Mod configuration</a></li><li><a href="../../players/dependencies/">Mod dependencies</a></li><li><a href="../../players/compatibility/">Mod compatibility</a></li><li><a href="../../players/profiles/">Mod profiles</a></li><li><a href="../../players/troubleshooting/">Troubleshooting</a></li><li><a href="../../players/error-messages/">Understanding error messages</a></li><li><a href="../../players/logs/">Log files and crash reports</a></li></ul></details><details class="nav-group"><summary><span>Developers</span><span class="count">12</span></summary><ul><li><a href="../../developer/environment/">Development environment setup</a></li><li><a href="../../developer/first-mod/">Creating your first mod</a></li><li><a href="../../developer/project-structure/">Project structure</a></li><li><a href="../../developer/manifest/">Mod manifest and metadata</a></li><li><a href="../../developer/lifecycle/">Mod lifecycle</a></li><li><a href="../../developer/hooks/">Events and hooks</a></li><li><a href="../../developer/api/">API reference</a></li><li><a href="../../developer/dependency-management/">Dependency management</a></li><li><a href="../../developer/inter-mod/">Inter-mod communication</a></li><li><a href="../../developer/config-api/">Configuration API</a></li><li><a href="../../developer/debugging/">Logging and debugging</a></li><li><a href="../../developer/publishing/">Packaging and publishing mods</a></li></ul></details><details class="nav-group"><summary><span>Technical</span><span class="count">9</span></summary><ul><li><a href="../../technical/architecture/">Loader architecture</a></li><li><a href="../../technical/discovery/">Mod discovery</a></li><li><a href="../../technical/loading-pipeline/">Mod loading pipeline</a></li><li><a href="../../technical/dependency-resolution/">Dependency resolution</a></li><li><a href="../../technical/assembly-loading/">Assembly loading</a></li><li><a href="../../technical/runtime-integration/">Runtime integration</a></li><li><a href="../../technical/compatibility-system/">Compatibility system</a></li><li><a href="../../technical/version-management/">Version management</a></li><li><a href="../../technical/internal-apis/">Internal APIs</a></li></ul></details><details class="nav-group"><summary><span>Resources</span><span class="count">8</span></summary><ul><li><a href="../../resources/downloads/">Downloads</a></li><li><a href="../../resources/changelog/">Changelog</a></li><li><a href="../../resources/release-history/">Release history</a></li><li><a href="../../resources/game-versions/">Supported game versions</a></li><li><a href="../../resources/platforms/">Supported platforms</a></li><li><a href="../../resources/community/">Community links</a></li><li><a href="../../resources/github/">GitHub repository</a></li><li><a href="../../resources/contributing/">Contributing guidelines</a></li></ul></details><details class="nav-group" open><summary><span>API wiki</span><span class="count">36</span></summary><ul><li><a href="../../reference/overview/">API wiki overview</a></li><li><a href="../../reference/sdk-layout/">SDK layout and build system</a></li><li><a href="../../reference/recipes/">Recipes</a></li><li><a href="../../reference/generated/">Generated tables</a></li><li><a href="../../reference/h-audio/">sw/audio.hpp</a></li><li><a href="../../reference/h-camera/">sw/camera.hpp</a></li><li><a href="../../reference/h-console/">sw/console.hpp</a></li><li><a href="../../reference/h-discord/">sw/discord.hpp</a></li><li><a href="../../reference/h-events/">sw/events.hpp</a></li><li><a href="../../reference/h-flags/">sw/flags.hpp</a></li><li><a href="../../reference/h-game/">sw/game.hpp</a></li><li><a href="../../reference/h-game-state/">sw/game_state.hpp</a></li><li><a href="../../reference/h-hook/">sw/hook.hpp</a></li><li><a href="../../reference/h-input/">sw/input.hpp</a></li><li><a href="../../reference/h-instances/">sw/instances.hpp</a></li><li><a href="../../reference/h-mapicons/">sw/mapicons.hpp</a></li><li><a href="../../reference/h-mesh/">sw/mesh.hpp</a></li><li><a href="../../reference/h-mod/">sw/mod.hpp</a></li><li><a href="../../reference/h-network/">sw/network.hpp</a></li><li><a href="../../reference/h-obj/">sw/obj.hpp</a></li><li><a href="../../reference/h-overlay/">sw/overlay.hpp</a></li><li><a href="../../reference/h-physics/">sw/physics.hpp</a></li><li><a href="../../reference/h-render/">sw/render.hpp</a></li><li><a href="../../reference/h-runtime/">sw/runtime.hpp</a></li><li><a href="../../reference/h-settings/">sw/settings.hpp</a></li><li><a href="../../reference/h-signature/">sw/signature.hpp</a></li><li><a href="../../reference/h-start-tiles/">sw/start_tiles.hpp</a></li><li><a href="../../reference/h-textures/" aria-current="page" class="active">sw/textures.hpp</a></li><li><a href="../../reference/h-tiles/">sw/tiles.hpp</a></li><li><a href="../../reference/h-trees/">sw/trees.hpp</a></li><li><a href="../../reference/h-ui/">sw/ui.hpp</a></li><li><a href="../../reference/h-vehicle/">sw/vehicle.hpp</a></li><li><a href="../../reference/h-vfs/">sw/vfs.hpp</a></li><li><a href="../../reference/h-views/">sw/views.hpp</a></li><li><a href="../../reference/h-weather/">sw/weather.hpp</a></li><li><a href="../../reference/h-world/">sw/world.hpp</a></li></ul></details><div class="side-help"><strong>Need help?</strong>Ask on the <a href="https://discord.gg/HH3ezeD8BD" rel="noopener">Discord server</a> or open an <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">issue on GitHub</a>.</div></nav><div class="scrim" id="scrim"></div><main class="content" id="main"><article><ol class="crumbs" aria-label="Breadcrumb"><li><a href="../../">Home</a></li><li><a href="../../reference/overview/">API Wiki</a></li><li aria-current="page">sw/textures.hpp</li></ol><h1>sw/textures.hpp</h1><p class="lead">Read, change and write .txtr files.</p><p>Source: <a href="https://github.com/DeltaV-Modding/DeltaLoader/blob/main/include/sw/textures.hpp" rel="noopener">include/sw/textures.hpp</a></p>
+<div class="code"><div class="code-bar"><span class="code-lang">textures.hpp</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code class="lang-cpp"><span class="tk-p">#include &lt;array&gt;</span>
+<span class="tk-p">#include &lt;cstdint&gt;</span>
+<span class="tk-p">#include &lt;string&gt;</span>
+<span class="tk-p">#include &lt;vector&gt;</span>
+
+<span class="tk-kw">namespace</span> sw::gfx {
+
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kFlagAtlasPath = <span class="tk-s">&quot;graphics/flags.txtr&quot;</span>;       <span class="tk-c">// below rom/</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kFlagShaderVertex = <span class="tk-s">&quot;graphics/shaders/flags.glslv&quot;</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kFlagShaderFragment = <span class="tk-s">&quot;graphics/shaders/flags.glslf&quot;</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kFlagDefinitions[<span class="tk-n">3</span>] = {
+    <span class="tk-s">&quot;data/definitions/flag_small.xml&quot;</span>, <span class="tk-s">&quot;data/definitions/flag_medium.xml&quot;</span>,
+    <span class="tk-s">&quot;data/definitions/flag_large.xml&quot;</span>};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">const</span> <span class="tk-kw">char</span>* kFlagPoleMeshes[<span class="tk-n">3</span>] = {
+    <span class="tk-s">&quot;meshes/component_flagpole_small.mesh&quot;</span>, <span class="tk-s">&quot;meshes/component_flagpole_medium.mesh&quot;</span>,
+    <span class="tk-s">&quot;meshes/component_flagpole_large.mesh&quot;</span>};
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">int</span> kFlagComponentType = <span class="tk-n">65</span>;   <span class="tk-c">// type=&quot;65&quot; in the three definitions</span>
+
+<span class="tk-c">// The atlas: 1024 x 1024, the top half is empty, the flags are in blocks below.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">int</span> kFlagAtlasSize = <span class="tk-n">1024</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">int</span> kFlagAtlasEmptyRows = <span class="tk-n">512</span>;   <span class="tk-c">// y 0..511 is free</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">int</span> kFlagCellWidth = <span class="tk-n">64</span>;         <span class="tk-c">// a flag of the main block</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">int</span> kFlagCellHeight = <span class="tk-n">32</span>;
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTextureLoad = <span class="tk-n">0x20fa80</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaGraphicsAssetsInit = <span class="tk-n">0x6b20c0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffFlagTexture = <span class="tk-n">0x50</span>;
+
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableFlagComponent = <span class="tk-n">0xafd938</span>;      <span class="tk-c">// c_scene_vehicle_component_flag</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kFlagComponentSize = <span class="tk-n">0x2c8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableMaterialFlag = <span class="tk-n">0xb09540</span>;       <span class="tk-c">// c_material_flag</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableMaterialFlagClip = <span class="tk-n">0xb4def0</span>;   <span class="tk-c">// c_material_flag_clip</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtablePropertyFlag = <span class="tk-n">0xb724c0</span>;       <span class="tk-c">// c_properties_element_flag</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtablePropertyFlag64 = <span class="tk-n">0xafb9b0</span>;     <span class="tk-c">// c_properties_element_flag_64</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableUiPropertyFlag = <span class="tk-n">0xb78c88</span>;     <span class="tk-c">// c_ui_properties_element_flag</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableUiPropertyFlag128 = <span class="tk-n">0xb7ad00</span>;  <span class="tk-c">// c_ui_properties_element_flag_128</span>
+
+<span class="tk-c">// The file format.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kTxtrHeaderSize = <span class="tk-n">23</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kTxtrTrailerSize = <span class="tk-n">2</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kTxtrVersion = <span class="tk-n">3</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kTxtrFormatRgba = <span class="tk-n">2</span>;
+
+
+<span class="tk-c">// A picture without a file format: RGBA, row by row from the top.</span>
+<span class="tk-kw">struct</span> Image {
+    <span class="tk-kw">int</span> width = <span class="tk-n">0</span>;
+    <span class="tk-kw">int</span> height = <span class="tk-n">0</span>;
+    <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::uint8_t&gt; rgba;   <span class="tk-c">// width * height * 4</span>
+};
+
+<span class="tk-c">// A texture file that was read. The header and the trailer are kept as they are,</span>
+<span class="tk-c">// so write() produces a file the game can read.</span>
+<span class="tk-kw">struct</span> Texture {
+    <span class="tk-kw">int</span> width = <span class="tk-n">0</span>;
+    <span class="tk-kw">int</span> height = <span class="tk-n">0</span>;
+    <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::uint8_t&gt; rgba;
+    <span class="tk-kw">std</span>::array&lt;<span class="tk-kw">std</span>::uint8_t, kTxtrHeaderSize&gt; header{};
+    <span class="tk-kw">std</span>::array&lt;<span class="tk-kw">std</span>::uint8_t, kTxtrTrailerSize&gt; trailer{};
+    <span class="tk-kw">std</span>::<span class="tk-kw">string</span> source;   <span class="tk-c">// the path it was read from</span>
+};
+
+<span class="tk-c">// Reads a TXTR file of version 3, format 2 (RGBA, square).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">read</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; path, Texture&amp; out, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-c">// Writes a NEW file. Refuses the path the texture was read from.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">write</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; path, <span class="tk-kw">const</span> Texture&amp; texture, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-c">// Is the rectangle empty (every pixel has alpha 0)?</span>
+<span class="tk-kw">bool</span> <span class="tk-f">is_empty</span>(<span class="tk-kw">const</span> Texture&amp; texture, <span class="tk-kw">int</span> x, <span class="tk-kw">int</span> y, <span class="tk-kw">int</span> width, <span class="tk-kw">int</span> height);
+
+<span class="tk-c">// The first empty place of that size, searched row by row in steps of the</span>
+<span class="tk-c">// size. False if there is none.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">find_free</span>(<span class="tk-kw">const</span> Texture&amp; texture, <span class="tk-kw">int</span> width, <span class="tk-kw">int</span> height, <span class="tk-kw">int</span>&amp; x, <span class="tk-kw">int</span>&amp; y);
+
+<span class="tk-c">// The empty places of that size (the grid of cells width x height).</span>
+<span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::pair&lt;<span class="tk-kw">int</span>, <span class="tk-kw">int</span>&gt;&gt; <span class="tk-f">free_cells</span>(<span class="tk-kw">const</span> Texture&amp; texture, <span class="tk-kw">int</span> width, <span class="tk-kw">int</span> height);
+
+<span class="tk-c">// Puts a picture into the texture. Refuses (false and an error) if it does not</span>
+<span class="tk-c">// fit or if one pixel of the place is not empty: nothing that is there is</span>
+<span class="tk-c">// replaced. Fully transparent pixels of the picture are written with alpha 1,</span>
+<span class="tk-c">// because alpha 0 means &quot;empty&quot;.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">put</span>(Texture&amp; texture, <span class="tk-kw">const</span> Image&amp; image, <span class="tk-kw">int</span> x, <span class="tk-kw">int</span> y, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-c">// Cuts a rectangle out of a texture (for example one flag).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">crop</span>(<span class="tk-kw">const</span> Texture&amp; texture, <span class="tk-kw">int</span> x, <span class="tk-kw">int</span> y, <span class="tk-kw">int</span> width, <span class="tk-kw">int</span> height, Image&amp; out);
+
+<span class="tk-kw">struct</span> TextureFile {
+    <span class="tk-kw">std</span>::uint32_t format = <span class="tk-n">0</span>;
+    <span class="tk-kw">bool</span> flag = <span class="tk-kw">false</span>;
+    <span class="tk-kw">int</span> width = <span class="tk-n">0</span>;
+    <span class="tk-kw">int</span> height = <span class="tk-n">0</span>;
+    <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::uint8_t&gt;&gt; levels;   <span class="tk-c">// as stored</span>
+    <span class="tk-kw">std</span>::array&lt;<span class="tk-kw">std</span>::uint8_t, <span class="tk-n">2</span>&gt; trailer{};
+    <span class="tk-kw">std</span>::<span class="tk-kw">string</span> source;
+};
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kTxtrFormatBc3 = <span class="tk-n">3</span>;
+
+<span class="tk-c">// Reads any TXTR file of version 3 (all levels). Checks that the levels use the</span>
+<span class="tk-c">// whole file.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">read_file</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; path, TextureFile&amp; out, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-c">// Writes a NEW file; refuses the file that was read.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">write_file</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; path, <span class="tk-kw">const</span> TextureFile&amp; file, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-c">// Decodes one level (0 = the largest) to RGBA. Format 2 is copied, format 3 is</span>
+<span class="tk-c">// decoded as BC3. Other formats are refused.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">decode</span>(<span class="tk-kw">const</span> TextureFile&amp; file, <span class="tk-kw">int</span> level, Image&amp; out, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+<span class="tk-c">// BC3 / DXT5 to RGBA (width and height in pixels).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">decode_bc3</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::uint8_t&gt;&amp; data, <span class="tk-kw">int</span> width, <span class="tk-kw">int</span> height, Image&amp; out);
+
+<span class="tk-kw">bool</span> <span class="tk-f">encode_bc3</span>(<span class="tk-kw">const</span> Image&amp; image, <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::uint8_t&gt;&amp; out);
+
+
+<span class="tk-kw">bool</span> <span class="tk-f">make_texture</span>(<span class="tk-kw">const</span> Image&amp; image, <span class="tk-kw">std</span>::uint32_t format, TextureFile&amp; out, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>&amp; error);
+
+}  <span class="tk-c">// namespace sw::gfx</span></code></pre></div><section class="related"><h2>Related</h2><ul><li><a href="../../reference/overview/">API wiki overview</a> <span>API Wiki</span></li></ul></section></article><nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../reference/h-start-tiles/"><span>Previous</span>sw/start_tiles.hpp</a><a class="next" href="../../reference/h-tiles/"><span>Next</span>sw/tiles.hpp</a></nav><p class="edit">Documentation for game build 1.15.26. Found a mistake? <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">Open an issue</a>.</p></main><aside class="toc"></aside></div>
+<div class="search-modal" id="search-modal" hidden><div class="search-backdrop" data-close></div><div class="search-panel" role="dialog" aria-modal="true" aria-label="Search documentation"><div class="search-input"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><input id="search-q" type="search" placeholder="Search the documentation" autocomplete="off" spellcheck="false" aria-controls="search-results"><kbd>Esc</kbd></div><ul id="search-results" class="search-results" role="listbox"></ul><div class="search-foot"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div></div></div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>

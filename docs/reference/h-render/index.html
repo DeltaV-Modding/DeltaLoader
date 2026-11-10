@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sw/render.hpp - DeltaLoader</title>
+<meta name="description" content="Frame end, OpenGL entry points, shaders, uniforms, render targets, the deferred pipeline.">
+<script>try{var t=localStorage.getItem("dl-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="../../assets/docs.css">
+<link rel="icon" href="../../assets/logo.png" type="image/png">
+</head>
+<body data-root="../../">
+<a class="skip" href="#main">Skip to content</a>
+<header class="topbar"><div class="topbar-in"><button class="icon-btn menu-btn" id="menu-btn" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="sidebar"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5h14M3 10h14M3 15h14"/></svg></button><a class="brand" href="../../"><img src="../../assets/logo.png" alt="" width="28" height="28"><span>DeltaLoader</span><em>Docs</em></a><nav class="topnav" aria-label="Main"><a href="../../getting-started/introduction/">Getting Started</a><a href="../../players/installing-mods/">Players</a><a href="../../developer/environment/">Developers</a><a href="../../technical/architecture/">Technical</a><a href="../../resources/downloads/">Resources</a><a href="../../reference/overview/" class="on">API wiki</a></nav><div class="topbar-end"><button class="search-btn" id="search-open" type="button" aria-label="Search documentation"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><span>Search</span><kbd>Ctrl K</kbd></button><label class="version"><span class="sr">Documentation version</span><select id="version" aria-label="Documentation version"><option value="1.15.26" selected>Game 1.15.26 (current)</option></select></label><button class="icon-btn" id="theme" type="button" aria-label="Switch colour theme" title="Light / dark"><svg class="i-moon" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M15.8 10.8A6.6 6.6 0 0 1 7.2 2.2 6.6 6.6 0 1 0 15.8 10.8Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg><svg class="i-sun" width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="9" cy="9" r="3.2" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.5v1.8M9 14.7v1.8M1.5 9h1.8M14.7 9h1.8M3.7 3.7l1.3 1.3M13 13l1.3 1.3M14.3 3.7 13 5M5 13l-1.3 1.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button><a class="icon-btn" href="https://github.com/DeltaV-Modding/DeltaLoader" rel="noopener" aria-label="GitHub"><svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a></div></div></header>
+<div class="layout"><nav class="sidebar" id="sidebar" aria-label="Documentation"><details class="nav-group"><summary><span>Getting Started</span><span class="count">7</span></summary><ul><li><a href="../../getting-started/introduction/">Introduction</a></li><li><a href="../../getting-started/requirements/">System requirements</a></li><li><a href="../../getting-started/installation/">Installation</a></li><li><a href="../../getting-started/first-launch/">First launch</a></li><li><a href="../../getting-started/updating/">Updating the loader</a></li><li><a href="../../getting-started/uninstallation/">Uninstallation</a></li><li><a href="../../getting-started/faq/">Frequently asked questions</a></li></ul></details><details class="nav-group"><summary><span>Players</span><span class="count">10</span></summary><ul><li><a href="../../players/installing-mods/">Installing mods</a></li><li><a href="../../players/removing-mods/">Removing mods</a></li><li><a href="../../players/updating-mods/">Updating mods</a></li><li><a href="../../players/configuration/">Mod configuration</a></li><li><a href="../../players/dependencies/">Mod dependencies</a></li><li><a href="../../players/compatibility/">Mod compatibility</a></li><li><a href="../../players/profiles/">Mod profiles</a></li><li><a href="../../players/troubleshooting/">Troubleshooting</a></li><li><a href="../../players/error-messages/">Understanding error messages</a></li><li><a href="../../players/logs/">Log files and crash reports</a></li></ul></details><details class="nav-group"><summary><span>Developers</span><span class="count">12</span></summary><ul><li><a href="../../developer/environment/">Development environment setup</a></li><li><a href="../../developer/first-mod/">Creating your first mod</a></li><li><a href="../../developer/project-structure/">Project structure</a></li><li><a href="../../developer/manifest/">Mod manifest and metadata</a></li><li><a href="../../developer/lifecycle/">Mod lifecycle</a></li><li><a href="../../developer/hooks/">Events and hooks</a></li><li><a href="../../developer/api/">API reference</a></li><li><a href="../../developer/dependency-management/">Dependency management</a></li><li><a href="../../developer/inter-mod/">Inter-mod communication</a></li><li><a href="../../developer/config-api/">Configuration API</a></li><li><a href="../../developer/debugging/">Logging and debugging</a></li><li><a href="../../developer/publishing/">Packaging and publishing mods</a></li></ul></details><details class="nav-group"><summary><span>Technical</span><span class="count">9</span></summary><ul><li><a href="../../technical/architecture/">Loader architecture</a></li><li><a href="../../technical/discovery/">Mod discovery</a></li><li><a href="../../technical/loading-pipeline/">Mod loading pipeline</a></li><li><a href="../../technical/dependency-resolution/">Dependency resolution</a></li><li><a href="../../technical/assembly-loading/">Assembly loading</a></li><li><a href="../../technical/runtime-integration/">Runtime integration</a></li><li><a href="../../technical/compatibility-system/">Compatibility system</a></li><li><a href="../../technical/version-management/">Version management</a></li><li><a href="../../technical/internal-apis/">Internal APIs</a></li></ul></details><details class="nav-group"><summary><span>Resources</span><span class="count">8</span></summary><ul><li><a href="../../resources/downloads/">Downloads</a></li><li><a href="../../resources/changelog/">Changelog</a></li><li><a href="../../resources/release-history/">Release history</a></li><li><a href="../../resources/game-versions/">Supported game versions</a></li><li><a href="../../resources/platforms/">Supported platforms</a></li><li><a href="../../resources/community/">Community links</a></li><li><a href="../../resources/github/">GitHub repository</a></li><li><a href="../../resources/contributing/">Contributing guidelines</a></li></ul></details><details class="nav-group" open><summary><span>API wiki</span><span class="count">36</span></summary><ul><li><a href="../../reference/overview/">API wiki overview</a></li><li><a href="../../reference/sdk-layout/">SDK layout and build system</a></li><li><a href="../../reference/recipes/">Recipes</a></li><li><a href="../../reference/generated/">Generated tables</a></li><li><a href="../../reference/h-audio/">sw/audio.hpp</a></li><li><a href="../../reference/h-camera/">sw/camera.hpp</a></li><li><a href="../../reference/h-console/">sw/console.hpp</a></li><li><a href="../../reference/h-discord/">sw/discord.hpp</a></li><li><a href="../../reference/h-events/">sw/events.hpp</a></li><li><a href="../../reference/h-flags/">sw/flags.hpp</a></li><li><a href="../../reference/h-game/">sw/game.hpp</a></li><li><a href="../../reference/h-game-state/">sw/game_state.hpp</a></li><li><a href="../../reference/h-hook/">sw/hook.hpp</a></li><li><a href="../../reference/h-input/">sw/input.hpp</a></li><li><a href="../../reference/h-instances/">sw/instances.hpp</a></li><li><a href="../../reference/h-mapicons/">sw/mapicons.hpp</a></li><li><a href="../../reference/h-mesh/">sw/mesh.hpp</a></li><li><a href="../../reference/h-mod/">sw/mod.hpp</a></li><li><a href="../../reference/h-network/">sw/network.hpp</a></li><li><a href="../../reference/h-obj/">sw/obj.hpp</a></li><li><a href="../../reference/h-overlay/">sw/overlay.hpp</a></li><li><a href="../../reference/h-physics/">sw/physics.hpp</a></li><li><a href="../../reference/h-render/" aria-current="page" class="active">sw/render.hpp</a></li><li><a href="../../reference/h-runtime/">sw/runtime.hpp</a></li><li><a href="../../reference/h-settings/">sw/settings.hpp</a></li><li><a href="../../reference/h-signature/">sw/signature.hpp</a></li><li><a href="../../reference/h-start-tiles/">sw/start_tiles.hpp</a></li><li><a href="../../reference/h-textures/">sw/textures.hpp</a></li><li><a href="../../reference/h-tiles/">sw/tiles.hpp</a></li><li><a href="../../reference/h-trees/">sw/trees.hpp</a></li><li><a href="../../reference/h-ui/">sw/ui.hpp</a></li><li><a href="../../reference/h-vehicle/">sw/vehicle.hpp</a></li><li><a href="../../reference/h-vfs/">sw/vfs.hpp</a></li><li><a href="../../reference/h-views/">sw/views.hpp</a></li><li><a href="../../reference/h-weather/">sw/weather.hpp</a></li><li><a href="../../reference/h-world/">sw/world.hpp</a></li></ul></details><div class="side-help"><strong>Need help?</strong>Ask on the <a href="https://discord.gg/HH3ezeD8BD" rel="noopener">Discord server</a> or open an <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">issue on GitHub</a>.</div></nav><div class="scrim" id="scrim"></div><main class="content" id="main"><article><ol class="crumbs" aria-label="Breadcrumb"><li><a href="../../">Home</a></li><li><a href="../../reference/overview/">API Wiki</a></li><li aria-current="page">sw/render.hpp</li></ol><h1>sw/render.hpp</h1><p class="lead">Frame end, OpenGL entry points, shaders, uniforms, render targets, the deferred pipeline.</p><p>Source: <a href="https://github.com/DeltaV-Modding/DeltaLoader/blob/main/include/sw/render.hpp" rel="noopener">include/sw/render.hpp</a></p>
+<div class="code"><div class="code-bar"><span class="code-lang">render.hpp</span><button class="copy" type="button" aria-label="Copy code">Copy</button></div><pre><code class="lang-cpp"><span class="tk-c">// render.hpp - the graphics engine of the game: where a frame ends, which OpenGL calls it</span>
+<span class="tk-c">// uses, and where the post-processing sits. A base for upscalers and render mods.</span>
+<span class="tk-c">//</span>
+<span class="tk-c">// What is proven (REPORT 3.111; static):</span>
+<span class="tk-c">//</span>
+<span class="tk-c">//  * The game renders with OpenGL 3+ through a statically linked GLFW (3.3 style). The window</span>
+<span class="tk-c">//    context has a table of function pointers: GLFW's swapBuffers is 0x90740 (it ends in</span>
+<span class="tk-c">//    SwapBuffers(window + 0x270)) and makeCurrent is 0x906c0; the table is filled by 0x90f90</span>
+<span class="tk-c">//    at window + 0x240.. . The swap is the ONE place where a frame ends.</span>
+<span class="tk-c">//  * All OpenGL functions beyond 1.1 are loaded by one stub each (2,591 names); the pointer</span>
+<span class="tk-c">//    is kept in a slot. gl_function() returns what the game loaded. 59 of them are used by</span>
+<span class="tk-c">//    the engine; the 43 functions of OpenGL 1.1 come through the import table of OPENGL32.dll.</span>
+<span class="tk-c">//  * The renderer object (constructor 0x6d16c0) holds 80 shader objects at fixed offsets.</span>
+<span class="tk-c">//    The frame function 0x6d4de0 (36 KB) runs, in the order of its code: the depth downsample</span>
+<span class="tk-c">//    and SSAO, the scene, then temporal AA (shader temporal_aa), motion blur, tonemap and</span>
+<span class="tk-c">//    FXAA. The engine already has what a temporal upscaler needs: a velocity texture</span>
+<span class="tk-c">//    (texture_velocity), the depth, the colour of the last frame and a per-frame offset</span>
+<span class="tk-c">//    (rand_offset, the jitter) - see shader_inputs in the mapping.</span>
+<span class="tk-c">//</span>
+<span class="tk-c">// THE PIPELINE (REPORT 3.113). The renderer is deferred. One view (&quot;pipeline&quot;, 0x66e3a0 builds it)</span>
+<span class="tk-c">// owns these targets: [0] the G-buffer (RGBA16F, RGBA8, RG16F = the VELOCITY, depth/stencil),</span>
+<span class="tk-c">// [1] the lit scene colour (the `light` shader composes the G-buffer into it), [2] the history</span>
+<span class="tk-c">// of the last frame, [3] the output of the anti-aliasing, then SSAO, bloom, and small ones. The</span>
+<span class="tk-c">// anti-aliasing mode is a field of the pipeline (1 = FXAA, 2 = temporal AA). In mode 2 the pass</span>
+<span class="tk-c">// 0x68fde0 reads [1] (colour), [0] attachment 2 (velocity) and [0] depth, the history [2] and</span>
+<span class="tk-c">// writes [3]; the tonemap then reads [3] and DRAWS TO THE SCREEN (framebuffer 0) at the window</span>
+<span class="tk-c">// size. There is no separate final blit. An upscaler therefore goes between the scene colour</span>
+<span class="tk-c">// and the tonemap: read upscaler_inputs(), write `output_texture`. upscaler_inputs() delivers</span>
+<span class="tk-c">// exactly the OpenGL ids a temporal upscaler needs. The jitter is NOT in the engine:</span>
+<span class="tk-c">// `rand_offset` of the TAA is two CRT rand() values (noise for the filter), the projection</span>
+<span class="tk-c">// is not jittered; a temporal upscaler has to add its own.</span>
+<span class="tk-c">//</span>
+<span class="tk-c">//   #include &quot;sw/render.hpp&quot;</span>
+<span class="tk-c">//</span>
+<span class="tk-c">//   sw::render::watch();                                 // once, in sw_mod_start</span>
+<span class="tk-c">//   sw::render::on_frame_end(my_overlay, nullptr);       // runs on the render thread, GL context current</span>
+<span class="tk-c">//   void* fn = sw::render::gl_function(&quot;glBindFramebuffer&quot;);</span>
+<span class="tk-c">//</span>
+<span class="tk-c">// RENDER TARGETS (REPORT 3.112). Every framebuffer of the renderer is an object of the family</span>
+<span class="tk-c">// mm_resource_target_* (target, multiple, multisample, mipmapped). watch_targets() hooks the</span>
+<span class="tk-c">// functions that create and delete their OpenGL objects and keeps the list, so targets()</span>
+<span class="tk-c">// returns every live target with its OpenGL framebuffer, colour and depth texture ids, size</span>
+<span class="tk-c">// and format. The size of the main view is the client area of the window; there is no render</span>
+<span class="tk-c">// scale setting (graphics state + 0x8f0 / 0x8f4). The last use of the scene target is a blit</span>
+<span class="tk-c">// to framebuffer 0 (slot 4 of the class); that is the place for an upscaler to take over.</span>
+<span class="tk-c">//</span>
+<span class="tk-c">// ABOUT DLSS. NVIDIA's DLSS SDK has no OpenGL backend (Direct3D 11/12 and Vulkan only), and</span>
+<span class="tk-c">// this game is OpenGL. So there are three honest ways: (1) a spatial upscaler written as an</span>
+<span class="tk-c">// OpenGL shader in the place of the FXAA pass (FSR 1 style; needs nothing the engine lacks);</span>
+<span class="tk-c">// (2) a temporal upscaler (FSR 2 style) in the place of temporal_aa, which gets the velocity,</span>
+<span class="tk-c">// depth and jitter the engine already has; (3) DLSS itself through a shared texture between</span>
+<span class="tk-c">// OpenGL and Vulkan/D3D (GL_EXT_memory_object or WGL_NV_DX_interop2) - heavy, and the colour,</span>
+<span class="tk-c">// depth and velocity have to be copied out and the result back. This header gives the base</span>
+<span class="tk-c">// for all three: the frame end, the GL entry points, the pass order and the shader offsets.</span>
+<span class="tk-c">// It does not contain an upscaler.</span>
+
+<span class="tk-p">#include &quot;sw/generated_gl.hpp&quot;</span>
+<span class="tk-p">#include &quot;sw/generated_render.hpp&quot;</span>
+
+<span class="tk-p">#include &lt;cstddef&gt;</span>
+<span class="tk-p">#include &lt;cstdint&gt;</span>
+<span class="tk-p">#include &lt;vector&gt;</span>
+
+<span class="tk-kw">namespace</span> sw::render {
+
+<span class="tk-c">// Called once per frame, on the render thread, with the GL context current, just before the</span>
+<span class="tk-c">// frame is presented. `window` is the GLFW window of the game.</span>
+<span class="tk-kw">using</span> FrameCallback = <span class="tk-kw">void</span> (*)(<span class="tk-kw">void</span>* window, <span class="tk-kw">void</span>* user);
+
+<span class="tk-c">// Hooks the swap (0x90740). False if the game does not match, the hook fails, or this is the</span>
+<span class="tk-c">// 32 bit build.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">watch</span>();
+
+<span class="tk-c">// The swap was called in the last moments.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">ready</span>();
+
+<span class="tk-c">// Adds a callback for the end of a frame. False before watch(), or when the same</span>
+<span class="tk-c">// callback/user pair is already there.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">on_frame_end</span>(FrameCallback callback, <span class="tk-kw">void</span>* user);
+
+<span class="tk-c">// Removes all callbacks of this module.</span>
+<span class="tk-kw">void</span> <span class="tk-f">remove_callbacks</span>();
+
+<span class="tk-c">// The number of frames presented since watch(), and the time between the last two</span>
+<span class="tk-c">// presents in milliseconds.</span>
+<span class="tk-kw">std</span>::uint64_t <span class="tk-f">frames</span>();
+<span class="tk-kw">double</span> <span class="tk-f">frame_ms</span>();
+
+<span class="tk-c">// The window of the last frame and its device context (window + 0x270).</span>
+<span class="tk-kw">void</span>* <span class="tk-f">window</span>();
+<span class="tk-kw">void</span>* <span class="tk-f">window_dc</span>();
+
+<span class="tk-c">// The entry of the table for this name, or nullptr. Names are the OpenGL names</span>
+<span class="tk-c">// (&quot;glBindFramebuffer&quot;), as in the mapping gl_functions.tsv.</span>
+<span class="tk-kw">const</span> GlEntry* <span class="tk-f">gl_entry</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name);
+
+<span class="tk-c">// The function pointer the game holds for this name (what wglGetProcAddress returned, or the</span>
+<span class="tk-c">// entry of OPENGL32.dll), or nullptr when the name is unknown or the game has not loaded it.</span>
+<span class="tk-kw">void</span>* <span class="tk-f">gl_function</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name);
+
+<span class="tk-c">// How many places of the engine call this function (0 = loaded but never used).</span>
+<span class="tk-kw">int</span> <span class="tk-f">gl_uses</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name);
+
+<span class="tk-c">// The viewport of the current framebuffer (glGetIntegerv(GL_VIEWPORT)). Only valid inside a</span>
+<span class="tk-c">// frame callback (GL context current on this thread).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">viewport</span>(<span class="tk-kw">int</span>&amp; x, <span class="tk-kw">int</span>&amp; y, <span class="tk-kw">int</span>&amp; width, <span class="tk-kw">int</span>&amp; height);
+
+<span class="tk-c">// Your own shader uniform. The game sets only the uniforms its C++ shader classes know, but a uniform that you add to</span>
+<span class="tk-c">// a shader (a mod folder with the edited .glsl) keeps the value you give it: uniforms belong to the program object.</span>
+<span class="tk-c">// set_uniform() finds every program that declares `name` and writes the value into it (1 to 4 floats; or one int).</span>
+<span class="tk-c">// Call it from a frame callback (render thread, GL context current), for example once a frame or when the value changes.</span>
+<span class="tk-c">// Returns the number of programs that took the value (0: no program declares the name, or not watching).</span>
+<span class="tk-c">// The program that was bound is bound again afterwards. Not tried in a running game.</span>
+<span class="tk-kw">int</span> <span class="tk-f">set_uniform</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name, <span class="tk-kw">const</span> <span class="tk-kw">float</span>* values, <span class="tk-kw">int</span> count);
+<span class="tk-kw">int</span> <span class="tk-f">set_uniform_int</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name, <span class="tk-kw">int</span> value);
+
+<span class="tk-c">// ---- render targets and the size of the view --------------------------------------------------</span>
+<span class="tk-kw">enum</span> <span class="tk-kw">class</span> TargetKind { target, multiple, multisample, mipmapped };
+
+<span class="tk-c">// The format enum the renderer uses (REPORT 3.112) and what it is in OpenGL.</span>
+<span class="tk-kw">enum</span> <span class="tk-kw">class</span> TargetFormat : <span class="tk-kw">int</span> {
+    none = <span class="tk-n">0</span>,
+    depth24 = <span class="tk-n">1</span>,           <span class="tk-c">// GL_DEPTH_COMPONENT24</span>
+    depth24_shadow = <span class="tk-n">2</span>,    <span class="tk-c">// GL_DEPTH_COMPONENT24, linear filter, compare mode</span>
+    depth24_stencil8 = <span class="tk-n">3</span>,  <span class="tk-c">// GL_DEPTH24_STENCIL8</span>
+    rgba8 = <span class="tk-n">4</span>,
+    rgba16f = <span class="tk-n">5</span>,
+    rgba32f = <span class="tk-n">6</span>,
+    r8 = <span class="tk-n">7</span>,
+    r16f = <span class="tk-n">8</span>,
+    rg8 = <span class="tk-n">9</span>,
+    rg16f = <span class="tk-n">10</span>,
+};
+
+<span class="tk-c">// The OpenGL internal format (GL_RGBA16F = 0x881A, ...) of a format, or 0.</span>
+<span class="tk-kw">unsigned</span> <span class="tk-f">gl_internal_format</span>(TargetFormat format);
+<span class="tk-c">// Bytes per pixel of a colour format, 0 for depth formats and none.</span>
+<span class="tk-kw">int</span> <span class="tk-f">bytes_per_pixel</span>(TargetFormat format);
+
+<span class="tk-kw">struct</span> Attachment {
+    <span class="tk-kw">unsigned</span> texture = <span class="tk-n">0</span>;
+    <span class="tk-kw">int</span> index = <span class="tk-n">0</span>;
+    TargetFormat format = TargetFormat::none;
+};
+
+<span class="tk-kw">struct</span> TargetInfo {
+    <span class="tk-kw">std</span>::uintptr_t address = <span class="tk-n">0</span>;
+    TargetKind kind = TargetKind::target;
+    <span class="tk-kw">unsigned</span> fbo = <span class="tk-n">0</span>;                 <span class="tk-c">// the OpenGL framebuffer object</span>
+    <span class="tk-kw">int</span> width = <span class="tk-n">0</span>, height = <span class="tk-n">0</span>;
+    <span class="tk-kw">unsigned</span> color_texture = <span class="tk-n">0</span>;       <span class="tk-c">// first colour attachment (0 = none)</span>
+    TargetFormat color_format = TargetFormat::none;
+    <span class="tk-kw">unsigned</span> depth_texture = <span class="tk-n">0</span>;
+    TargetFormat depth_format = TargetFormat::none;
+    <span class="tk-kw">int</span> attachments = <span class="tk-n">0</span>;              <span class="tk-c">// colour attachments of a &quot;multiple&quot; target, else 1 or 0</span>
+    <span class="tk-kw">std</span>::vector&lt;Attachment&gt; colors;   <span class="tk-c">// all colour attachments (one for a single target)</span>
+};
+
+<span class="tk-c">// Hooks the create and delete functions of the target classes (8 functions). False if the</span>
+<span class="tk-c">// game does not match or a hook fails.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">watch_targets</span>();
+
+<span class="tk-c">// Every live target seen since watch_targets() (targets created before it are not known).</span>
+<span class="tk-kw">std</span>::vector&lt;TargetInfo&gt; <span class="tk-f">targets</span>();
+
+<span class="tk-c">// Reads one target object; false if the address is not a target of the family.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">read_target</span>(<span class="tk-kw">std</span>::uintptr_t address, TargetInfo&amp; out);
+
+<span class="tk-c">// Hooks the update of the view size (0x1be550) so that the graphics state object is known.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">watch_view</span>();
+
+<span class="tk-c">// The size of the frame buffer / of the window client area as the renderer has it, and the</span>
+<span class="tk-c">// aspect ratio. False before the first update. The two sizes are equal in this build.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">framebuffer_size</span>(<span class="tk-kw">int</span>&amp; width, <span class="tk-kw">int</span>&amp; height);
+<span class="tk-kw">bool</span> <span class="tk-f">window_size</span>(<span class="tk-kw">int</span>&amp; width, <span class="tk-kw">int</span>&amp; height);
+<span class="tk-kw">float</span> <span class="tk-f">aspect</span>();
+
+<span class="tk-c">// ---- the pipeline of a view and the inputs of an upscaler ---------------------------------------</span>
+<span class="tk-c">// The members of the pipeline object, by index (offset = 8 * index): each one points at a target.</span>
+<span class="tk-kw">enum</span> <span class="tk-kw">class</span> PipelineSlot : <span class="tk-kw">int</span> {
+    gbuffer = <span class="tk-n">0</span>,        <span class="tk-c">// mm_resource_target_multiple: RGBA16F, RGBA8, RG16F (velocity), depth/stencil</span>
+    scene = <span class="tk-n">1</span>,          <span class="tk-c">// RGBA16F + depth/stencil: the lit scene colour; input of the AA</span>
+    history = <span class="tk-n">2</span>,        <span class="tk-c">// RGBA16F + depth: the output of the last frame (texture_color_last_frame)</span>
+    aa_output = <span class="tk-n">3</span>,      <span class="tk-c">// RGBA16F + depth/stencil: output of TAA / input of FXAA; the tonemap reads it in TAA mode</span>
+    ssao = <span class="tk-n">4</span>,           <span class="tk-c">// R8</span>
+    ssao_blur = <span class="tk-n">5</span>,      <span class="tk-c">// R8</span>
+    bloom_a = <span class="tk-n">6</span>,        <span class="tk-c">// RGBA16F at the size / bloom divisor</span>
+    bloom_b = <span class="tk-n">7</span>,
+    depth_copy = <span class="tk-n">8</span>,     <span class="tk-c">// R16F + depth/stencil, only when the pipeline flag +0xc8 is set</span>
+    mipmapped = <span class="tk-n">0xf</span>,
+    shadow_small = <span class="tk-n">0x10</span>,   <span class="tk-c">// 128 x 128, depth only</span>
+    linear_depth = <span class="tk-n">0x11</span>,   <span class="tk-c">// R16F + depth/stencil, full size: handed to the scene passes</span>
+    shadow_large = <span class="tk-n">0x12</span>,   <span class="tk-c">// 1024 x 1024 R16F</span>
+    reflection_a = <span class="tk-n">0x16</span>,   <span class="tk-c">// 512 x 512 RGBA16F</span>
+    reflection_b = <span class="tk-n">0x17</span>,
+};
+
+<span class="tk-kw">enum</span> <span class="tk-kw">class</span> AaMode : <span class="tk-kw">int</span> { none = <span class="tk-n">0</span>, fxaa = <span class="tk-n">1</span>, temporal = <span class="tk-n">2</span> };
+
+<span class="tk-kw">struct</span> Pipeline {
+    <span class="tk-kw">std</span>::uintptr_t address = <span class="tk-n">0</span>;
+    AaMode aa_mode = AaMode::none;
+    <span class="tk-kw">bool</span> motion_blur = <span class="tk-kw">false</span>;
+    <span class="tk-kw">std</span>::vector&lt;TargetInfo&gt; slots;   <span class="tk-c">// indexed by PipelineSlot (missing = address 0)</span>
+    <span class="tk-kw">const</span> TargetInfo&amp; <span class="tk-f">slot</span>(PipelineSlot s) <span class="tk-kw">const</span>;
+};
+
+<span class="tk-c">// What a temporal upscaler reads and writes (OpenGL texture ids and sizes), taken from the pipeline.</span>
+<span class="tk-kw">struct</span> UpscalerInputs {
+    <span class="tk-kw">unsigned</span> color_texture = <span class="tk-n">0</span>;       <span class="tk-c">// the lit scene colour (RGBA16F), pipeline [1]</span>
+    <span class="tk-kw">unsigned</span> velocity_texture = <span class="tk-n">0</span>;    <span class="tk-c">// G-buffer attachment 2 (RG16F)</span>
+    <span class="tk-kw">unsigned</span> depth_texture = <span class="tk-n">0</span>;       <span class="tk-c">// G-buffer depth/stencil</span>
+    <span class="tk-kw">unsigned</span> history_texture = <span class="tk-n">0</span>;     <span class="tk-c">// pipeline [2]</span>
+    <span class="tk-kw">unsigned</span> output_texture = <span class="tk-n">0</span>;      <span class="tk-c">// pipeline [3]: where the tonemap reads in TAA mode</span>
+    <span class="tk-kw">unsigned</span> output_fbo = <span class="tk-n">0</span>;
+    <span class="tk-kw">int</span> input_width = <span class="tk-n">0</span>, input_height = <span class="tk-n">0</span>;       <span class="tk-c">// size of the scene colour</span>
+    <span class="tk-kw">int</span> output_width = <span class="tk-n">0</span>, output_height = <span class="tk-n">0</span>;     <span class="tk-c">// size of the output target (equal in this build)</span>
+    AaMode aa_mode = AaMode::none;
+    <span class="tk-kw">bool</span> velocity_is_rg16f = <span class="tk-kw">false</span>;   <span class="tk-c">// the format check that tells the velocity attachment is what it should be</span>
+};
+
+<span class="tk-c">// Hooks the frame function (0x6d4de0) so that the renderer object is known.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">watch_renderer</span>();
+
+<span class="tk-c">// The renderer object (nullptr before the first frame after watch_renderer()).</span>
+<span class="tk-kw">void</span>* <span class="tk-f">renderer</span>();
+
+<span class="tk-c">// The pipeline of a view: 0 = the main view (renderer + 0x2628), 1 = the second view (+0x2718).</span>
+<span class="tk-kw">bool</span> <span class="tk-f">pipeline</span>(<span class="tk-kw">int</span> view, Pipeline&amp; out);
+
+<span class="tk-c">// The inputs of an upscaler for the main view; false if the pipeline is not complete.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">upscaler_inputs</span>(UpscalerInputs&amp; out);
+
+<span class="tk-c">// The shader object of the renderer for a shader name (&quot;temporal_aa&quot;): its offset inside</span>
+<span class="tk-c">// the renderer object, or 0 when there is none.</span>
+<span class="tk-kw">std</span>::uint32_t <span class="tk-f">renderer_shader_offset</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* shader);
+
+<span class="tk-c">// ---- addresses (RVA, stormworks64.exe 1.15.25) -------------------------------------------------</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaGlfwContextInit = <span class="tk-n">0x90f90</span>;     <span class="tk-c">// fills the function table of the context</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaGlfwMakeCurrent = <span class="tk-n">0x906c0</span>;     <span class="tk-c">// table + 0x240</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaGlfwSwapBuffers = <span class="tk-n">0x90740</span>;     <span class="tk-c">// table + 0x248; ends in SwapBuffers(dc)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffContextMakeCurrent = <span class="tk-n">0x240</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffContextSwapBuffers = <span class="tk-n">0x248</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffWindowDc = <span class="tk-n">0x270</span>;                <span class="tk-c">// window + 0x270 = the device context</span>
+
+<span class="tk-c">// Render target classes (vtable RVAs), the factories on the resource manager, and the fields.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableTargetBase = <span class="tk-n">0xb11770</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableTarget = <span class="tk-n">0xb0a778</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableTargetMultiple = <span class="tk-n">0xb5c4d8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableTargetMultisample = <span class="tk-n">0xb0cd40</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kVtableTargetMipmapped = <span class="tk-n">0xb06980</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaCreateTarget = <span class="tk-n">0x1b2630</span>;            <span class="tk-c">// (manager, w, h, colour, depth, name)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaCreateTargetMultiple = <span class="tk-n">0x1b2940</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaCreateTargetMultisample = <span class="tk-n">0x1b2ad0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaCreateTargetMipmapped = <span class="tk-n">0x1b27c0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTargetCreateGl[<span class="tk-n">4</span>] = {<span class="tk-n">0x1ae530</span>, <span class="tk-n">0x1aec00</span>, <span class="tk-n">0x1af2a0</span>, <span class="tk-n">0x1af6a0</span>};   <span class="tk-c">// slot 1</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTargetDeleteGl[<span class="tk-n">4</span>] = {<span class="tk-n">0x1ae680</span>, <span class="tk-n">0x1aedd0</span>, <span class="tk-n">0x1af340</span>, <span class="tk-n">0x1af7d0</span>};   <span class="tk-c">// slot 2</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTargetBlit = <span class="tk-n">0x1ae700</span>;              <span class="tk-c">// slot 4 of mm_resource_target</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaRenderTargetsCreate = <span class="tk-n">0x66e3a0</span>;     <span class="tk-c">// creates the targets of one view</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaRenderTargetsCreateB = <span class="tk-n">0x66ec40</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaUpdateViewportSize = <span class="tk-n">0x1be550</span>;      <span class="tk-c">// GetClientRect -&gt; graphics state</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetMemory = <span class="tk-n">0xc</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetFbo = <span class="tk-n">0x28</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetWidth = <span class="tk-n">0x2c</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetHeight = <span class="tk-n">0x30</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetColorTexture = <span class="tk-n">0x48</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetColorFormat = <span class="tk-n">0x4c</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetDepthTexture = <span class="tk-n">0x50</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetDepthFormat = <span class="tk-n">0x54</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetMultipleColors = <span class="tk-n">0x48</span>;          <span class="tk-c">// data pointer of the ring (0xc bytes each)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetMultipleCapacity = <span class="tk-n">0x50</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetMultipleHead = <span class="tk-n">0x54</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetMultipleCount = <span class="tk-n">0x58</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetMultipleDepthTexture = <span class="tk-n">0x60</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffTargetMultipleDepthFormat = <span class="tk-n">0x68</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffGraphicsFramebufferWidth = <span class="tk-n">0x8f0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffGraphicsFramebufferHeight = <span class="tk-n">0x8f4</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffGraphicsWindowWidth = <span class="tk-n">0x8f8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffGraphicsWindowHeight = <span class="tk-n">0x8fc</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffGraphicsAspect = <span class="tk-n">0x900</span>;
+
+<span class="tk-c">// The pipeline and the anti-aliasing passes.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererPipelineMain = <span class="tk-n">0x2628</span>;        <span class="tk-c">// the pipeline object inside the renderer</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererPipelineSecond = <span class="tk-n">0x2718</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffPipelineMotionBlur = <span class="tk-n">0xc9</span>;            <span class="tk-c">// byte: motion blur on</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffPipelineAaMode = <span class="tk-n">0xcc</span>;                <span class="tk-c">// int: 1 = FXAA, 2 = temporal AA</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffPipelineBloomDivisor = <span class="tk-n">0xe4</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTaaSetup = <span class="tk-n">0x68fcb0</span>;                <span class="tk-c">// (shader, camera): program, sampler units, matrix, rand_offset</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTaaDraw = <span class="tk-n">0x68fde0</span>;                 <span class="tk-c">// (shader, quad, colour target, G-buffer, history target)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTonemapSetup = <span class="tk-n">0x68e670</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTonemapDraw = <span class="tk-n">0x68e8b0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaFxaaDraw = <span class="tk-n">0x68f8c0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaMotionBlurDraw = <span class="tk-n">0x6902d0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaBindScreen = <span class="tk-n">0x6ddba0</span>;              <span class="tk-c">// binds framebuffer 0 and sets the viewport to the window size</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaTargetAddColor = <span class="tk-n">0x1aee70</span>;          <span class="tk-c">// mm_resource_target_multiple::add_color_attachment(format)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererLight = <span class="tk-n">0x17b8</span>;               <span class="tk-c">// the `light` shader object (deferred composition)</span>
+
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaRendererCtor = <span class="tk-n">0x6d16c0</span>;       <span class="tk-c">// builds the shader objects (4297 bytes)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaFrameRender = <span class="tk-n">0x6d4de0</span>;         <span class="tk-c">// the frame: passes in code order (36279 bytes)</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaFramebufferGroup = <span class="tk-n">0x1adee0</span>;    <span class="tk-c">// the render target helpers 0x1adee0..0x1af800</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaFramebufferBlit1 = <span class="tk-n">0x1ae700</span>;    <span class="tk-c">// glBlitFramebuffer</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaFramebufferBlit2 = <span class="tk-n">0x1aeef0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaFramebufferBlit3 = <span class="tk-n">0x1af800</span>;
+
+<span class="tk-c">// Offsets of the post-processing shader objects inside the renderer object.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererTonemap = <span class="tk-n">0x1488</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererSsao = <span class="tk-n">0x1598</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererSsaoBlur = <span class="tk-n">0x1658</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererFxaa = <span class="tk-n">0x16b8</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererTemporalAa = <span class="tk-n">0x16f0</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererMotionBlur = <span class="tk-n">0x1760</span>;
+<span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::size_t kOffRendererDownsampleDepth = <span class="tk-n">0x1e60</span>;
+
+}  <span class="tk-c">// namespace sw::render</span></code></pre></div><section class="related"><h2>Related</h2><ul><li><a href="../../reference/overview/">API wiki overview</a> <span>API Wiki</span></li></ul></section></article><nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../reference/h-physics/"><span>Previous</span>sw/physics.hpp</a><a class="next" href="../../reference/h-runtime/"><span>Next</span>sw/runtime.hpp</a></nav><p class="edit">Documentation for game build 1.15.26. Found a mistake? <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">Open an issue</a>.</p></main><aside class="toc"></aside></div>
+<div class="search-modal" id="search-modal" hidden><div class="search-backdrop" data-close></div><div class="search-panel" role="dialog" aria-modal="true" aria-label="Search documentation"><div class="search-input"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="7" cy="7" r="4.7"/><path d="M10.6 10.6 14 14"/></svg><input id="search-q" type="search" placeholder="Search the documentation" autocomplete="off" spellcheck="false" aria-controls="search-results"><kbd>Esc</kbd></div><ul id="search-results" class="search-results" role="listbox"></ul><div class="search-foot"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div></div></div>
+<script src="../../assets/docs.js" defer></script>
+</body>
+</html>
