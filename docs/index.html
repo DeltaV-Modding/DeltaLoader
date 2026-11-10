@@ -1540,32 +1540,12 @@ for (auto obj : sw::Instances::list("c_scene_ropes")) {
       <p>Attaching your own elements to the game - rectangle, button, text -
       works through real engine constructors and in exactly the order the game
       uses when it builds its menus. The same order works for the main menu and the loading screen.</p>
-      <h3>Elements and their addresses (build 25122525)</h3>
-      <div class="table-wrap"><table>
-        <tr><th>Function</th><th>RVA</th><th>What it does</th></tr>
-        <tr><td><code>c_ui_element_rectangle</code> constructor</td><td><code>0x2435b0</code></td>
-          <td>rectangle (this, x, y, w, h, anchor, color), 0x60 bytes, vtable <code>0xb91920</code></td></tr>
-        <tr><td>button factory</td><td><code>0x2616f0</code></td>
-          <td>a real <code>c_ui_element_point_button</code> (ctx, x, y, a4,
-          icon string*, text string*, a7, action id, 0.42, 0.14). Copies both
-          strings and frees their buffers. The action id lands in
-          <code>+0x90</code> - <b>0 = no action</b></td></tr>
-        <tr><td><code>c_ui_element_text</code> constructor</td><td><code>0x244a00</code></td>
-          <td>text element, 200 bytes (0xc8), vtable <code>0xb9ee00</code>;
-          parameters as at the call site in <code>0x62a1b0</code></td></tr>
-        <tr><td>engine <code>operator new</code></td><td><code>0x958c28</code></td>
-          <td>memory for the new element - always through the engine, never
-          <code>malloc</code>: the game frees it</td></tr>
-        <tr><td><code>mm_string</code> buffer</td><td><code>0x17cbb0</code></td>
-          <td>allocates the string buffer in the engine allocator</td></tr>
-        <tr><td>attaching to children</td><td><code>0x8f06c0</code></td>
-          <td>appends an element to the parent's child list
-          (<code>parent + 0x30</code>)</td></tr>
-        <tr><td>main-menu build / root / tick</td><td><code>0x6fc8a0</code>, <code>0x7020a0</code>, <code>0x6fd600</code></td>
-          <td>build hooks provide <code>ctx</code> (rdx); the tick runs per page</td></tr>
-        <tr><td>loading-screen build / tick</td><td><code>0x62a1b0</code>, <code>0x24f2c0</code></td>
-          <td>vtable <code>0xaf3f30</code>; slot 1 (build, rdx = ctx) and slot 3 (per frame)</td></tr>
-      </table></div>
+      <h3>Elements and their addresses</h3>
+      <p>Addresses change with every game build, so none are listed here. Look them up by name in the headers of the current SDK:
+      <code>sw/generated_symbols.hpp</code> (RVA of every named function, e.g. the constructors of
+      <code>c_ui_element_rectangle</code> and <code>c_ui_element_text</code>, the button factory, <code>mm_string</code>
+      and the child-attach function) and <code>sw/protos.hpp</code> (the bound engine functions). The element layout below was
+      measured on an older build; check offsets against the current build before you rely on them.</p>
       <h3>Fields of a UI element</h3>
       <p>The positions are proven in the live game - readable
       and writable with <code>rt.readable()</code> and
@@ -1578,19 +1558,19 @@ for (auto obj : sw::Instances::list("c_scene_ropes")) {
         <tr><td><code>+0x18</code></td><td>anchor (u32)</td>
           <td><a href="#ui-anker">see below</a></td></tr>
         <tr><td><code>+0x1c</code></td><td>visible (u8)</td>
-          <td>0 = not drawn and not hit-tested (0x1db8f0, 0x1dbe00)</td></tr>
+          <td>0 = not drawn and not hit-tested</td></tr>
         <tr><td><code>+0x20</code></td><td>parent pointer</td></tr>
         <tr><td><code>+0x30</code></td><td>child list</td>
-          <td>attach point for <code>0x8f06c0</code></td></tr>
+          <td>attach point for the child-attach function</td></tr>
         <tr><td><code>+0x90</code></td><td>action id (buttons only)</td>
           <td>evaluated by the menu on click; 0 = none</td></tr>
         <tr><td><code>+0xd8</code> / <code>+0xe0</code></td><td>callback + user pointer (buttons only)</td>
-          <td>on release the game (button slot 18, <code>0x248970</code>) calls
+          <td>on release the game (button slot 18) calls
           <code>callback(input, user)</code> if the button was pressed and
           <code>+0x1d</code> is set</td></tr>
       </table></div>
       <h3 id="ui-anker">Anchors (+0x18)</h3>
-      <p>A value 0-8, evaluated by <code>0x1dc370</code> relative to the parent
+      <p>A value 0-8, evaluated by the layout code relative to the parent
       - both axes hang on the same number:</p>
       <ul>
         <li><b>x = value mod 3:</b> 0 = left, 1 = centered, 2 = right.</li>
@@ -1608,7 +1588,7 @@ const auto r = reinterpret_cast&lt;std::uintptr_t&gt;(
 // 2. Into the parent's child list (parent + 0x30)
 g_addchild(reinterpret_cast&lt;void*&gt;(parent + 0x30), reinterpret_cast&lt;void*&gt;(r));
 // 3. Call vtable slot 1: build; ctx comes from the rdx argument
-//    of the build hook (0x6fc8a0 main menu, 0x62a1b0 loading screen)
+//    of the build hook (main menu, loading screen)
 // 4. parent + 0x20 = parent, then vtable slot 29: attach
 </pre>
       <p>Use exactly this order. The
@@ -1619,13 +1599,13 @@ g_addchild(reinterpret_cast&lt;void*&gt;(parent + 0x30), reinterpret_cast&lt;voi
       <p><code>{ pointer, size, capacity }</code>, 16 bytes. The buffer must be
       allocated through the engine - the game frees it later:</p>
       <pre>MmString s{};                        // { nullptr, 0, 0 }
-g_reserve(&amp;s, length + 1);           // 0x17cbb0: allocate buffer
+g_reserve(&amp;s, length + 1);           // allocate buffer
 std::memcpy(s.data, text, length);
 s.data[length] = '\0';
 s.size = length;                     // length without the null byte</pre>
       <div class="note">The button factory <b>copies</b> both strings and frees
       their buffers - your MmString may disappear afterwards. The text
-      constructor <b>takes ownership</b> of the passed buffer; even then the buffer must come from <code>0x17cbb0</code>.</div>
+      constructor <b>takes ownership</b> of the passed buffer; even then the buffer must come from the engine string allocator.</div>
       <h3>Threads while building UI</h3>
       <p>The build runs on the thread on which the game is currently building
       or ticking its surface (engine thread). The same rules as for any
@@ -1646,7 +1626,7 @@ s.size = length;                     // length without the null byte</pre>
           visible (e.g. ON/OFF).</li>
         <li><b>Removing elements:</b> not proven. Example trick: move them far
           off screen (<code>x + 100</code>) - the hit test
-          (<code>0x1dbe00</code>) no longer finds them there.</li>
+          no longer finds them there.</li>
         <li><b>Visibility:</b> flip <code>+0x1c</code> between 0 and 1 -
           hides the element together with its children (what
           <code>main_menu</code> does too).</li>
