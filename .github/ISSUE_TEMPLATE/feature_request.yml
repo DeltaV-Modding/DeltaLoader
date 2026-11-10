@@ -1,0 +1,35 @@
+name: Feature request
+description: An idea for the SDK, the loader or the launcher.
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - SDK (headers, API)
+        - Launcher
+        - Injector / loading
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: What do you want to do?
+      description: Describe what you want to build or achieve, not only the function you imagine.
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Existing calls, headers or workarounds.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: This is for single-player and does not work against anti-cheat.
+          required: true

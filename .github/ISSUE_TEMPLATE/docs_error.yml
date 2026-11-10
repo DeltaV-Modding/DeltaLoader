@@ -1,0 +1,30 @@
+name: Documentation error or missing page
+description: Something in the documentation is wrong, unclear or missing.
+labels: ["documentation"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: Link to the page, for example https://deltav-modding.github.io/DeltaLoader/developer/hooks/
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is wrong?
+      options:
+        - Wrong information
+        - Unclear or confusing
+        - A TODO that I can fill in
+        - Missing page or topic
+        - Broken link or layout
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What should it say? If you know where it comes from (a header, a log, a test), name it.
+    validations:
+      required: true

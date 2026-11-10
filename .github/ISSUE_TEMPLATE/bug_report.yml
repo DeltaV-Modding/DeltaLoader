@@ -1,0 +1,69 @@
+name: Bug report
+description: Something in the SDK, the loader or a mod build does not work.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        DeltaLoader is for your own copy of the game in single-player. Reports about multiplayer, anti-cheat or cheating will be closed.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it happen?
+      options:
+        - Building a mod (CMake, compiler)
+        - A mod does not load
+        - A hook or an SDK call fails
+        - The game crashes
+        - Documentation example does not work
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: game
+    attributes:
+      label: Game version
+      description: For example 1.15.26 (build 26294447).
+    validations:
+      required: true
+  - type: input
+    id: launcher
+    attributes:
+      label: DeltaLauncher version
+      description: Shown at the bottom left of the launcher window.
+  - type: input
+    id: sdk
+    attributes:
+      label: SDK commit or version
+      description: The commit of this repository you built against.
+  - type: textarea
+    id: log
+    attributes:
+      label: Log
+      description: The relevant lines of `%TEMP%\stormworks_mods.log` (and `stormworks_mods.old.log` if the problem was in the previous run). Do not paste game files or decompiled code.
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you send
+      options:
+        - label: I use single-player and my own, legally bought copy of the game.
+          required: true
+        - label: I searched the existing issues and the documentation.
+          required: true

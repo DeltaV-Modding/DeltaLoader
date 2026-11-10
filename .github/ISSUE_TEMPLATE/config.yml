@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and help (Discord)
+    url: https://discord.gg/HH3ezeD8BD
+    about: Ask on the Discord server before you open an issue for a question.
+  - name: Documentation
+    url: https://deltav-modding.github.io/DeltaLoader/
+    about: Getting started, player and developer documentation, API wiki.

@@ -1,0 +1,29 @@
+name: Mods stopped loading after a game update
+description: A new Stormworks build is out and the loader or the SDK refuses to start mods.
+labels: ["game-update"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        After a game update, native mods stay out of the game on purpose until the mapping is updated. Check the changelog first. This form helps us see which build is affected.
+  - type: input
+    id: build
+    attributes:
+      label: Game version and build
+      description: For example 1.15.27 (build number from Steam, if you know it).
+    validations:
+      required: true
+  - type: input
+    id: launcher
+    attributes:
+      label: DeltaLauncher version
+    validations:
+      required: true
+  - type: textarea
+    id: message
+    attributes:
+      label: Message in the launcher log or console
+      description: For example a SHA-256 mismatch or a signature count.
+      render: text
+    validations:
+      required: true
