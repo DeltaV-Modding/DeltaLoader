@@ -25,10 +25,10 @@
   document.addEventListener('click', function (e) {
     var b = e.target.closest ? e.target.closest('.copy') : null;
     if (!b) return;
-    var code = b.closest('.code').querySelector('code');
+    var cb = b.closest('.code'); var code = cb ? cb.querySelector('code') : null; var direct = b.getAttribute('data-copy'); var src = direct !== null ? direct : code.innerText;
     var done = function () { b.textContent = 'Copied'; b.setAttribute('data-done', ''); setTimeout(function () { b.textContent = 'Copy'; b.removeAttribute('data-done'); }, 1400); };
-    if (navigator.clipboard) navigator.clipboard.writeText(code.innerText).then(done, function () { }); else {
-      var r = document.createRange(); r.selectNodeContents(code); var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    if (navigator.clipboard) navigator.clipboard.writeText(src).then(done, function () { }); else {
+      var r = document.createRange(); r.selectNodeContents(code || b.parentNode.querySelector('code')); var s = getSelection(); s.removeAllRanges(); s.addRange(r);
       try { document.execCommand('copy'); done(); } catch (x) { }
     }
   });
