@@ -8,6 +8,11 @@
 #include "sw/runtime.hpp"
 #include "sw/settings.hpp"
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+
 #include <atomic>
 #include <cmath>
 #include <cstring>
@@ -25,15 +30,57 @@ bool g_watching = false;
 constexpr std::uintptr_t kLow = m::kWaveEventBelowE;
 constexpr std::uintptr_t kHigh = 0xe0;
 
+// E is only trusted while the game itself keeps calling the sampler: in a running world it does that every tick. When the world
+// is left, loading or paused, the last E may be freed or half built - a player's mod crashed with a divide by zero inside the
+// sampler (0x2c15a0 divides by the dword at E + 0x18 of the first noise image, REPORT 3.191) after the world changed.
+std::atomic<unsigned long long> g_env_ms{0};
+constexpr unsigned long long kFreshMs = 3000;
+
 void on_sample(void*, void*) {
     g_env.store(static_cast<std::uintptr_t>(sw::Hook::arg(0)), std::memory_order_relaxed);
+    g_env_ms.store(GetTickCount64(), std::memory_order_relaxed);
 }
 
 std::uintptr_t env() {
     const std::uintptr_t e = g_env.load(std::memory_order_relaxed);
     if (!e || e < kLow) return 0;
+    if (GetTickCount64() - g_env_ms.load(std::memory_order_relaxed) > kFreshMs) return 0;   // the world is not running
     if (!sw::Runtime::get().readable(reinterpret_cast<const void*>(e - kLow), kLow + kHigh)) return 0;
     return e;
+}
+
+// The two noise images the sampler reads (E + 0 and E + 0x28): a width (u16 at +6) and the divisor (u32 at +0x18) that
+// 0x2c1580 divides by. Zero in either means the environment is not built (yet / any more): never call the game then.
+bool noise_ready(std::uintptr_t e) {
+    for (const std::uintptr_t image : {e, e + 0x28}) {
+        std::uint16_t width = 0;
+        std::uint32_t divisor = 0;
+        std::memcpy(&width, reinterpret_cast<const void*>(image + 6), sizeof(width));
+        std::memcpy(&divisor, reinterpret_cast<const void*>(image + 0x18), sizeof(divisor));
+        if (width == 0 || divisor == 0) return false;
+    }
+    return true;
+}
+
+// A call into the game's sampler that cannot take the process down: a fault inside returns false.
+bool call_sampler(const void* fn, std::uintptr_t e, float* buf, const double* pos) {
+    using Fn = void (*)(std::uintptr_t, float*, const double*, char);
+    __try {
+        reinterpret_cast<Fn>(const_cast<void*>(fn))(e, buf, pos, 1);
+        return true;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        return false;
+    }
+}
+
+bool call_temperature(const void* fn, std::uintptr_t e, const double* pos, float& out) {
+    using Fn = float (*)(std::uintptr_t, const double*, char);
+    __try {
+        out = reinterpret_cast<Fn>(const_cast<void*>(fn))(e, pos, 0);
+        return true;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        return false;
+    }
 }
 
 template <typename T>
@@ -109,11 +156,10 @@ bool sample(double x, double y, double z, Sample& out) {
     const auto e = env();
     if (!e) return false;
     const void* fn = sw::Runtime::get().at_rva(m::kRvaSample);
-    if (!fn) return false;
-    using Fn = void (*)(std::uintptr_t, float*, const double*, char);
+    if (!fn || !noise_ready(e)) return false;
     float buf[m::kSampleOutFloats] = {};
     const double pos[3] = {x, y, z};
-    reinterpret_cast<Fn>(const_cast<void*>(fn))(e, buf, pos, 1);
+    if (!call_sampler(fn, e, buf, pos)) return false;
     out.temp_raw = buf[0];
     out.rain = buf[1];
     out.fog = buf[2];
@@ -129,11 +175,10 @@ bool temperature_celsius(double x, double y, double z, float& out) {
     const auto e = env();
     if (!e) return false;
     const void* fn = sw::Runtime::get().at_rva(m::kRvaTemperature);
-    if (!fn) return false;
-    using Fn = float (*)(std::uintptr_t, const double*, char);
+    if (!fn || !noise_ready(e)) return false;
     const double pos[3] = {x, y, z};
-    const float t = reinterpret_cast<Fn>(const_cast<void*>(fn))(e, pos, 0);
-    if (!finite(t)) return false;
+    float t = 0.f;
+    if (!call_temperature(fn, e, pos, t) || !finite(t)) return false;
     out = t;
     return true;
 }
