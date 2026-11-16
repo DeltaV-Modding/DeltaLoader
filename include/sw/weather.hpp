@@ -33,6 +33,8 @@ bool wind_direction(float& radians);
 bool set_wind_direction(float radians);
 
 // What server.getWeather returns at a position (calls the game's sampler; world coordinates in metres).
+// Only in a running world: false in the menu, while a world loads or is left, and while paused (the game must have used its
+// sampler in the last 3 s). Asking at those times made the game divide by zero (REPORT 3.191); a fault inside returns false.
 // See snow() and temperature_celsius() below for the other Lua values.
 struct Sample {
     float temp_raw = 0.f;     // out[0] of the sampler (Lua key "temp"): a 0..1 warmth value, NOT Celsius
@@ -75,7 +77,7 @@ bool wave_event(WaveEvent& out);
 // ---- follow-up: temperature, snow, noise inputs, override flags, tornadoes ---------------------------------------
 
 // Temperature in Celsius at a world position (the game's function 0x2c3be0: noise, rain and wind dependent, minus 6.5 per km
-// of altitude y, never below -270). False when E has not been seen.
+// of altitude y, never below -270). False outside a running world, as sample().
 bool temperature_celsius(double x, double y, double z, float& out);
 // What server.getWeather returns as "snow": clamp(-temperature, 0, 5) / 5.
 bool snow(double x, double y, double z, float& out);
