@@ -13,6 +13,10 @@
 
 namespace sw::render {
 
+#if defined(_WIN64)
+void textures_frame_end();   // the texture uniforms, at the frame end (below)
+#endif
+
 namespace {
 
 struct Cb {
@@ -61,6 +65,7 @@ void on_swap(void* self, void*) {
         copy = g_callbacks;
     }
     for (const Cb& c : copy) c.fn(self, c.user);
+    textures_frame_end();   // the texture uniforms (render thread, context current)
 }
 
 template <typename T>
@@ -290,7 +295,10 @@ void* window_dc() {
     return dc;
 }
 
+void* (*g_test_resolver)(const char*) = nullptr;   // testing::use_gl_resolver
+
 void* gl_function(const char* name) {
+    if (g_test_resolver) return name ? g_test_resolver(name) : nullptr;
     const GlEntry* e = find_entry(name);
     auto& rt = sw::Runtime::get();
     if (!e || !rt.attached()) return nullptr;
@@ -366,10 +374,290 @@ int set_uniform_int(const char* name, int value) {
     return for_each_uniform(name, [&](int location) { reinterpret_cast<U>(fn)(location, value); });
 }
 
+// ---- texture uniforms (REPORT 3.193) ---------------------------------------------------------------------------------------
+namespace {
+
+struct TexEntry {
+    std::string name;
+    std::vector<std::uint8_t> rgba;   // waiting for the upload (emptied after it)
+    int width = 0, height = 0;
+    TextureOptions options;
+    unsigned texture = 0;             // GL name, 0 = not uploaded
+    int unit = -1;
+    bool upload = false;              // new pixels to upload
+    bool remove = false;
+    std::uint64_t sampler_frame = 0;  // frame of the last sampler update
+};
+std::mutex g_tex_mutex;
+std::vector<TexEntry> g_tex;
+bool g_tex_registered = false;
+std::uint64_t g_tex_frame = 0;
+constexpr int kMaxTextureUniforms = 16;
+constexpr std::uint64_t kSamplerEvery = 120;
+
+struct Gl {
+    void (*get_integerv)(unsigned, int*);
+    void (*gen_textures)(int, unsigned*);
+    void (*delete_textures)(int, const unsigned*);
+    void (*bind_texture)(unsigned, unsigned);
+    void (*active_texture)(unsigned);
+    void (*tex_parameteri)(unsigned, unsigned, int);
+    void (*tex_image_2d)(unsigned, int, int, int, int, int, unsigned, unsigned, const void*);
+    void (*generate_mipmap)(unsigned);
+    void (*pixel_storei)(unsigned, int);
+    void (*bind_buffer)(unsigned, unsigned);
+    void (*uniform1i)(int, int);
+    bool load() {
+        get_integerv = reinterpret_cast<decltype(get_integerv)>(gl_function("glGetIntegerv"));
+        gen_textures = reinterpret_cast<decltype(gen_textures)>(gl_function("glGenTextures"));
+        delete_textures = reinterpret_cast<decltype(delete_textures)>(gl_function("glDeleteTextures"));
+        bind_texture = reinterpret_cast<decltype(bind_texture)>(gl_function("glBindTexture"));
+        active_texture = reinterpret_cast<decltype(active_texture)>(gl_function("glActiveTexture"));
+        tex_parameteri = reinterpret_cast<decltype(tex_parameteri)>(gl_function("glTexParameteri"));
+        tex_image_2d = reinterpret_cast<decltype(tex_image_2d)>(gl_function("glTexImage2D"));
+        generate_mipmap = reinterpret_cast<decltype(generate_mipmap)>(gl_function("glGenerateMipmap"));
+        pixel_storei = reinterpret_cast<decltype(pixel_storei)>(gl_function("glPixelStorei"));
+        bind_buffer = reinterpret_cast<decltype(bind_buffer)>(gl_function("glBindBuffer"));
+        uniform1i = reinterpret_cast<decltype(uniform1i)>(gl_function("glUniform1i"));
+        return get_integerv && gen_textures && delete_textures && bind_texture && active_texture && tex_parameteri && tex_image_2d &&
+               generate_mipmap && pixel_storei && bind_buffer && uniform1i;
+    }
+};
+
+constexpr unsigned kTexture2D = 0x0DE1, kActiveTexture = 0x84E0, kTexture0 = 0x84C0, kMaxCombinedUnits = 0x8B4D,
+                   kUnpackBuffer = 0x88EC, kUnpackBufferBinding = 0x88EF, kUnpackAlignment = 0x0CF5, kUnpackRowLength = 0x0CF2,
+                   kTextureBinding2D = 0x8069;
+
+int free_unit(int max_units) {   // from the top; the caller holds g_tex_mutex
+    for (int unit = max_units - 1; unit >= max_units - kMaxTextureUniforms; --unit) {
+        bool used = false;
+        for (const TexEntry& e : g_tex) used = used || e.unit == unit;
+        if (!used) return unit;
+    }
+    return -1;
+}
+
+void upload(Gl& gl, TexEntry& e) {
+    if (!e.texture) gl.gen_textures(1, &e.texture);
+    gl.active_texture(kTexture0 + static_cast<unsigned>(e.unit));
+    gl.bind_texture(kTexture2D, e.texture);
+    const int wrap = e.options.repeat ? 0x2901 /* GL_REPEAT */ : 0x812F /* GL_CLAMP_TO_EDGE */;
+    const bool mips = e.options.mipmaps && e.options.linear;
+    gl.tex_parameteri(kTexture2D, 0x2802 /* WRAP_S */, wrap);
+    gl.tex_parameteri(kTexture2D, 0x2803 /* WRAP_T */, wrap);
+    gl.tex_parameteri(kTexture2D, 0x2801 /* MIN_FILTER */, e.options.linear ? (mips ? 0x2703 : 0x2601) : 0x2600);
+    gl.tex_parameteri(kTexture2D, 0x2800 /* MAG_FILTER */, e.options.linear ? 0x2601 : 0x2600);
+    const int internal = e.options.srgb ? 0x8C43 /* GL_SRGB8_ALPHA8 */ : 0x8058 /* GL_RGBA8 */;
+    gl.tex_image_2d(kTexture2D, 0, internal, e.width, e.height, 0, 0x1908 /* GL_RGBA */, 0x1401 /* GL_UNSIGNED_BYTE */, e.rgba.data());
+    if (mips) gl.generate_mipmap(kTexture2D);
+    e.rgba.clear();
+    e.rgba.shrink_to_fit();
+    e.upload = false;
+    e.sampler_frame = 0;   // set the sampler now
+}
+
+}  // namespace
+
+namespace {
+struct KeptUniform {
+    std::string name;
+    float values[4] = {};
+    int count = 0;          // 1..4 floats, or 0 with is_int
+    bool is_int = false;
+    int int_value = 0;
+    std::uint64_t frame = 0;   // last written (0 = at the next frame end)
+};
+std::vector<KeptUniform> g_kept;   // under g_tex_mutex
+}  // namespace
+
+void textures_frame_end() {
+    std::lock_guard<std::mutex> lock(g_tex_mutex);
+    if (g_kept.empty() && g_tex.empty()) return;
+    const std::uint64_t now = ++g_tex_frame;   // counted once a frame
+    for (KeptUniform& k : g_kept) {
+        if (k.frame != 0 && now - k.frame < kSamplerEvery) continue;
+        if (k.is_int) set_uniform_int(k.name.c_str(), k.int_value);
+        else set_uniform(k.name.c_str(), k.values, k.count);
+        k.frame = now;
+    }
+    if (g_tex.empty()) return;
+    Gl gl{};
+    if (!gl.load()) return;
+    int active = 0, unpack_buffer = 0, alignment = 4, row_length = 0, max_units = 0;
+    gl.get_integerv(kActiveTexture, &active);
+    gl.get_integerv(kUnpackBufferBinding, &unpack_buffer);
+    gl.get_integerv(kUnpackAlignment, &alignment);
+    gl.get_integerv(kUnpackRowLength, &row_length);
+    gl.get_integerv(kMaxCombinedUnits, &max_units);
+    if (max_units < 32) max_units = 32;
+    if (unpack_buffer) gl.bind_buffer(kUnpackBuffer, 0);   // the pixels come from memory, not from a buffer
+    gl.pixel_storei(kUnpackAlignment, 4);
+    gl.pixel_storei(kUnpackRowLength, 0);
+
+    for (auto it = g_tex.begin(); it != g_tex.end();) {
+        TexEntry& e = *it;
+        if (e.remove) {
+            if (e.texture) {
+                if (e.unit >= 0) {
+                    gl.active_texture(kTexture0 + static_cast<unsigned>(e.unit));
+                    gl.bind_texture(kTexture2D, 0);
+                }
+                gl.delete_textures(1, &e.texture);
+            }
+            it = g_tex.erase(it);
+            continue;
+        }
+        if (e.unit < 0) e.unit = free_unit(max_units);
+        if (e.unit < 0) {
+            ++it;
+            continue;
+        }
+        if (e.upload) upload(gl, e);
+        if (e.texture) {   // bound again every frame on its own unit
+            gl.active_texture(kTexture0 + static_cast<unsigned>(e.unit));
+            gl.bind_texture(kTexture2D, e.texture);
+            if (e.sampler_frame == 0 || g_tex_frame - e.sampler_frame >= kSamplerEvery) {
+                const int unit = e.unit;
+                for_each_uniform(e.name.c_str(), [&](int location) { gl.uniform1i(location, unit); });
+                e.sampler_frame = g_tex_frame;
+            }
+        }
+        ++it;
+    }
+
+    gl.pixel_storei(kUnpackAlignment, alignment);
+    gl.pixel_storei(kUnpackRowLength, row_length);
+    if (unpack_buffer) gl.bind_buffer(kUnpackBuffer, static_cast<unsigned>(unpack_buffer));
+    gl.active_texture(static_cast<unsigned>(active));
+}
+
+namespace {
+bool add_texture(const char* name, std::vector<std::uint8_t> rgba, int width, int height, const TextureOptions& options) {
+    if (!name || !*name || width <= 0 || height <= 0 || width > 16384 || height > 16384 ||
+        rgba.size() != static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4u)
+        return false;
+    if (!g_test_resolver && !watch()) return false;
+    std::lock_guard<std::mutex> lock(g_tex_mutex);
+    for (TexEntry& e : g_tex) {
+        if (e.name == name && !e.remove) {   // a new picture for the same sampler: same texture, same unit
+            e.rgba = std::move(rgba);
+            e.width = width;
+            e.height = height;
+            e.options = options;
+            e.upload = true;
+            return true;
+        }
+    }
+    int live = 0;
+    for (const TexEntry& e : g_tex) live += e.remove ? 0 : 1;
+    if (live >= kMaxTextureUniforms) return false;
+    TexEntry e;
+    e.name = name;
+    e.rgba = std::move(rgba);
+    e.width = width;
+    e.height = height;
+    e.options = options;
+    e.upload = true;
+    g_tex.push_back(std::move(e));
+    return true;
+}
+}  // namespace
+
+bool texture_uniform(const char* name, const std::wstring& path, const TextureOptions& options, std::string* error) {
+    std::vector<std::uint8_t> rgba;
+    int width = 0, height = 0;
+    std::string why;
+    if (!load_image(path, rgba, width, height, why)) {
+        if (error) *error = why;
+        return false;
+    }
+    if (!add_texture(name, std::move(rgba), width, height, options)) {
+        if (error) *error = "not watching the renderer, or 16 texture uniforms already";
+        return false;
+    }
+    return true;
+}
+
+bool texture_uniform_rgba(const char* name, const std::uint8_t* rgba, int width, int height, const TextureOptions& options) {
+    if (!rgba || width <= 0 || height <= 0) return false;
+    return add_texture(name, std::vector<std::uint8_t>(rgba, rgba + static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4u),
+                       width, height, options);
+}
+
+namespace {
+bool keep(const char* name, const float* values, int count, bool is_int, int int_value) {
+    if (!name || !*name) return false;
+    if (!g_test_resolver && !watch()) return false;
+    std::lock_guard<std::mutex> lock(g_tex_mutex);
+    for (auto it = g_kept.begin(); it != g_kept.end(); ++it) {
+        if (it->name != name) continue;
+        if (!is_int && count == 0) {
+            g_kept.erase(it);
+            return true;
+        }
+        it->is_int = is_int;
+        it->int_value = int_value;
+        it->count = count;
+        for (int i = 0; i < count; ++i) it->values[i] = values[i];
+        it->frame = 0;   // written at the next frame end
+        return true;
+    }
+    if (!is_int && count == 0) return true;
+    KeptUniform k;
+    k.name = name;
+    k.is_int = is_int;
+    k.int_value = int_value;
+    k.count = count;
+    for (int i = 0; i < count; ++i) k.values[i] = values[i];
+    g_kept.push_back(k);
+    return true;
+}
+}  // namespace
+
+bool keep_uniform(const char* name, const float* values, int count) {
+    if (count < 0 || count > 4 || (count > 0 && !values)) return false;
+    return keep(name, values, count, false, 0);
+}
+
+bool keep_uniform_int(const char* name, int value) { return keep(name, nullptr, 0, true, value); }
+
+void remove_texture_uniform(const char* name) {
+    if (!name) return;
+    std::lock_guard<std::mutex> lock(g_tex_mutex);
+    for (TexEntry& e : g_tex)
+        if (e.name == name) e.remove = true;
+}
+
+int texture_unit(const char* name) {
+    if (!name) return -1;
+    std::lock_guard<std::mutex> lock(g_tex_mutex);
+    for (const TexEntry& e : g_tex)
+        if (e.name == name && !e.remove && e.texture) return e.unit;
+    return -1;
+}
+
+namespace testing {
+void use_gl_resolver(void* (*resolver)(const char* name)) {
+    g_test_resolver = resolver;
+    g_watching = resolver != nullptr;   // for_each_uniform needs it; there is no game to hook
+}
+void run_frame_end() { textures_frame_end(); }
+}  // namespace testing
+
 #else
 
 int set_uniform(const char*, const float*, int) { return 0; }
 int set_uniform_int(const char*, int) { return 0; }
+bool texture_uniform(const char*, const std::wstring&, const TextureOptions&, std::string*) { return false; }
+bool texture_uniform_rgba(const char*, const std::uint8_t*, int, int, const TextureOptions&) { return false; }
+void remove_texture_uniform(const char*) {}
+int texture_unit(const char*) { return -1; }
+bool keep_uniform(const char*, const float*, int) { return false; }
+bool keep_uniform_int(const char*, int) { return false; }
+namespace testing {
+void use_gl_resolver(void* (*)(const char*)) {}
+void run_frame_end() {}
+}  // namespace testing
 
 bool watch() { return false; }
 bool read_target(std::uintptr_t, TargetInfo&) { return false; }

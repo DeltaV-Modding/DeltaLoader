@@ -8,6 +8,7 @@
 #include "sw/physics.hpp"
 #include "sw/mapicons.hpp"
 #include "sw/render.hpp"
+#include "sw/shader.hpp"
 #include "sw/network.hpp"
 #include "sw/audio.hpp"
 #include "sw/game_state.hpp"

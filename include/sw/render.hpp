@@ -60,6 +60,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <vector>
 
 namespace sw::render {
@@ -114,6 +115,47 @@ bool viewport(int& x, int& y, int& width, int& height);
 // The program that was bound is bound again afterwards. Not tried in a running game.
 int set_uniform(const char* name, const float* values, int count);
 int set_uniform_int(const char* name, int value);
+
+// ---- your own textures for a `uniform sampler2D` in your shader (REPORT 3.193) -------------------------------------------
+// A shader mod declares `uniform sampler2D my_tex;` and samples it; the game never sets it. texture_uniform() makes it show
+// your picture:
+//   * the picture is read now, on the calling thread (any thread): PNG, JPEG, BMP, GIF, TIFF (Windows Imaging Component)
+//     or a .txtr of the game (sw/textures.hpp);
+//   * at the next frame end the render thread uploads it (RGBA8, or sRGB) and binds it to a texture unit of its own,
+//     counted from the top of the context's units (47, 46, ...: the game uses 0 to 8), and sets the sampler to that unit
+//     in every program that declares `name`; the sampler is set again every 120 frames, so programs that appear later
+//     (a world load) get it too, and the texture is bound again every frame in case anything touched its unit;
+//   * the GL state of the game is put back: the active texture unit, the pixel unpack buffer and alignment.
+// Needs watch(). Returns false when the picture cannot be read (the reason in `error`) or there is no free unit (16 at most).
+// Calling it again with the same name replaces the picture. Not tried in a running game.
+struct TextureOptions {
+    bool repeat = true;     // GL_REPEAT, else GL_CLAMP_TO_EDGE
+    bool linear = true;     // linear filtering, else nearest (pixel art, look-up tables)
+    bool mipmaps = true;    // build mipmaps (only with linear)
+    bool srgb = false;      // the picture is a colour image in sRGB (true) or data such as noise or normals (false)
+};
+bool texture_uniform(const char* name, const std::wstring& path, const TextureOptions& options = {}, std::string* error = nullptr);
+// The same with your own pixels: width * height * 4 bytes, RGBA, row by row from the top.
+bool texture_uniform_rgba(const char* name, const std::uint8_t* rgba, int width, int height, const TextureOptions& options = {});
+// Takes the texture away (deleted at the next frame end; the sampler keeps its last unit, which is then empty).
+void remove_texture_uniform(const char* name);
+// The texture unit the sampler `name` uses, or -1 (not uploaded yet, or unknown).
+int texture_unit(const char* name);
+// A value that stays: like set_uniform / set_uniform_int, but callable from any thread. The value is written at the next
+// frame end and again every 120 frames (programs that appear later get it too); a new value replaces the old one.
+// count 0 removes it. Needs watch(). Returns false when not watching or the arguments are wrong.
+bool keep_uniform(const char* name, const float* values, int count);
+bool keep_uniform_int(const char* name, int value);
+
+// Reads a picture file into RGBA8 (row by row from the top). Works without a game and on any thread.
+bool load_image(const std::wstring& path, std::vector<std::uint8_t>& rgba, int& width, int& height, std::string& error);
+
+namespace testing {
+// For tests without the game: OpenGL entry points from this resolver (e.g. wglGetProcAddress + opengl32.dll) instead of the
+// game's table, and the frame work of the texture uniforms run by hand (the render thread's frame end in the game).
+void use_gl_resolver(void* (*resolver)(const char* name));
+void run_frame_end();
+}  // namespace testing
 
 // ---- render targets and the size of the view --------------------------------------------------
 enum class TargetKind { target, multiple, multisample, mipmapped };

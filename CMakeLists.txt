@@ -13,10 +13,11 @@ add_library(swbridge STATIC
     src/textures.cpp src/mesh.cpp src/camera.cpp src/physics.cpp
     src/mapicons.cpp src/render.cpp src/network.cpp src/overlay.cpp src/vfs.cpp
     src/audio.cpp src/game_state.cpp src/input.cpp src/weather.cpp
-    src/vehicle.cpp src/flags.cpp src/trees.cpp src/discord.cpp
+    src/vehicle.cpp src/flags.cpp src/trees.cpp src/discord.cpp src/image_load.cpp
 )
 target_include_directories(swbridge PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(swbridge PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+target_link_libraries(swbridge PUBLIC ole32 windowscodecs)
 
 add_library(swmodkit STATIC src/mod.cpp)
 target_link_libraries(swmodkit PUBLIC swbridge)

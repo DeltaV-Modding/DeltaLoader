@@ -69,6 +69,7 @@ reference/h-physics/
 reference/h-render/
 reference/h-runtime/
 reference/h-settings/
+reference/h-shader/
 reference/h-signature/
 reference/h-start-tiles/
 reference/h-textures/
