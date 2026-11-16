@@ -7,7 +7,7 @@
 //
 // The view part (REPORT 3.156) was read in the bytes of 1.15.25 (build 26275574) and
 // carried to 1.15.26 by the strict fingerprints of anchors.tsv (same code, +0x30):
-//   * mm_camera_perspective (RTTI vtable 0xb02940) keeps its world transform as a
+//   * mm_camera_perspective (RTTI vtable 0xb03a70) keeps its world transform as a
 //     double 4x4 at +0x08 (columns right, up, forward, position) and the vertical
 //     field of view in radians as a float at +0x278. Its slot 0 (0x194680) builds
 //     the view matrix from exactly these fields: forward = column 2, and the look-at
@@ -55,16 +55,16 @@ bool set_mode(Mode mode);
 bool mode(Mode& out);
 
 // Classes of the cameras of the scene (RTTI, stormworks64.exe 1.15.25).
-inline constexpr std::uint32_t kVtableCamera = 0xb0c2f0;               // mm_camera
-inline constexpr std::uint32_t kVtableCameraPerspective = 0xb02940;    // mm_camera_perspective
-inline constexpr std::uint32_t kVtableCameraOrthographic = 0xb942e0;   // mm_camera_orthographic
+inline constexpr std::uint32_t kVtableCamera = 0xb0d4e8;               // mm_camera
+inline constexpr std::uint32_t kVtableCameraPerspective = 0xb03a70;    // mm_camera_perspective
+inline constexpr std::uint32_t kVtableCameraOrthographic = 0xb95578;   // mm_camera_orthographic
 // mm_camera_orthographic_inside, c_scene_vehicle_component_camera (the camera
 // component of a vehicle) exist as classes; their vtables were not read.
 
 // The vehicle editor: a tool shelf with the camera settings. "Orbit Mode" turns
 // the camera around the vehicle, "Free Mode" moves it freely, "Reset Camera"
 // returns it (REPORT 3.99).
-inline constexpr std::uint32_t kVtableCameraToolshelf = 0xb492b0;      // camera_toolshelf
+inline constexpr std::uint32_t kVtableCameraToolshelf = 0xb4a3e8;      // camera_toolshelf
 inline constexpr std::uint32_t kRvaCameraToolshelfBuild = 0x617470;    // slot 1, 955 bytes
 inline constexpr std::uint32_t kRvaCameraToolshelfTick = 0x617270;     // slot 3, 178 bytes
 inline constexpr std::uint32_t kRvaToggleGroupSelect = 0x24d2c0;       // (group, unused, member)

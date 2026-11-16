@@ -63,16 +63,16 @@ void clear_overrides();
 // soft-rigid world).
 bool is_world(std::uintptr_t address);
 
-inline constexpr std::uint32_t kVtableDiscreteWorld = 0xae6058;    // btDiscreteDynamicsWorld
-inline constexpr std::uint32_t kVtableSoftRigidWorld = 0xae6710;   // btSoftRigidDynamicsWorld
+inline constexpr std::uint32_t kVtableDiscreteWorld = 0xae7058;    // btDiscreteDynamicsWorld
+inline constexpr std::uint32_t kVtableSoftRigidWorld = 0xae7710;   // btSoftRigidDynamicsWorld
 inline constexpr std::uint32_t kRvaStepSimulation = 0x133e90;      // 778 bytes
 inline constexpr std::uint32_t kRvaSetGravity = 0x134290;          // slot 17, a leaf without .pdata
 inline constexpr std::uint32_t kRvaGetGravity = 0x134370;          // slot 18, a leaf without .pdata
 inline constexpr std::uint32_t kRvaInternalSingleStep = 0x1341a0;  // slot 39, 230 bytes
 inline constexpr std::uint32_t kRvaSolverInfoCtor = 0x1328a0;      // sets 10 iterations
 inline constexpr std::uint32_t kRvaPhysicsSceneStep = 0x1a3bc0;    // the only caller, 138 bytes
-inline constexpr std::uint32_t kRvaConstFixedStep = 0xbb3318;      // double 1/180 (read by 0x1a3bcf)
-inline constexpr std::uint32_t kRvaConstStepTime = 0xbb33a0;       // double 1/60 (read by 0x1a3bda)
+inline constexpr std::uint32_t kRvaConstFixedStep = 0xbb4308;      // double 1/180 (read by 0x1a3bcf)
+inline constexpr std::uint32_t kRvaConstStepTime = 0xbb4390;       // double 1/60 (read by 0x1a3bda)
 inline constexpr std::uint32_t kRvaImmMaxSubSteps = 0x1a3be4;      // int32 1000 in "mov r8d, imm32"
 inline constexpr double kGameFixedStep = 0.0055555556900799274;   // the float 1/180 as a double
 inline constexpr double kGameStepTime = 0.01666666753590107;     // the float 1/60 as a double

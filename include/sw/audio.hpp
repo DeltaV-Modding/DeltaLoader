@@ -119,9 +119,9 @@ inline constexpr std::uint32_t kRvaEffectSlotCreate = 0x1aba70;
 inline constexpr std::uint32_t kRvaListenerUpdate = 0x7425a0;    // the only caller of alListener3f / alListenerfv
 inline constexpr std::uint32_t kRvaSoundLibraryRegisterAll = 0x27e980;
 inline constexpr std::uint32_t kRvaSoundLibraryLoad = 0x27e4b0;
-inline constexpr std::uint32_t kRvaSetAudioMoodCase = 0x8602cc;  // case of s2c 174 in the client switch 0x85f330
+inline constexpr std::uint32_t kRvaSetAudioMoodCase = 0x86063c;  // case of s2c 174 in the client switch 0x85f6a0
 inline constexpr std::size_t kOffOwnerEngine = 0x2c8;            // engine = owner + 0x2c8
-inline constexpr std::uint32_t kRvaMusicState = 0xd056e0;      // the global music state (made by 0x289090)
+inline constexpr std::uint32_t kRvaMusicState = 0xd066c0;      // the global music state (made by 0x289090)
 inline constexpr std::uint32_t kRvaMusicMoodUpdate = 0x289280;   // the only reader of the mood
 inline constexpr std::uint32_t kRvaMusicSwitch = 0x2895e0;       // (music, platform, track kind, fade, flag) -> 0x1ac4f0
 inline constexpr std::size_t kOffEngineEmitterGain = 0x3d8;

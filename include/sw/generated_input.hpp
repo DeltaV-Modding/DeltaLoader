@@ -10,7 +10,7 @@ struct ActionInfo { std::uint16_t id; const char* name; std::int16_t group_raw; 
 struct KeyMapEntry { std::uint16_t glfw_key; std::uint8_t game_key; };
 struct CallbackInfo { const char* role; std::uint32_t window_offset; std::uint32_t target_rva; };
 
-inline constexpr std::uint32_t kGlfwWindowListHeadRva = 0xceca80;
+inline constexpr std::uint32_t kGlfwWindowListHeadRva = 0xceda60;
 inline constexpr std::uint32_t kKeyCallbackRva = 0x1bc790, kCharCallbackRva = 0x1bcf80, kCursorCallbackRva = 0x1bd000, kMouseButtonCallbackRva = 0x1bd0d0, kScrollCallbackRva = 0x1bd210;
 inline constexpr std::uint32_t kPlatformCreateWindowRva = 0x1bd3f0, kKeyNameRva = 0x212460, kActionTableBuilderRva = 0x213e30, kGlfwWindowProcRva = 0x94b90, kGlfwPollEventsRva = 0x96d80, kInputLibLoaderRva = 0x91410;
 inline constexpr std::uint32_t kGlfwKeyByteTableRva = 0x1bce3c;   // 0x13d bytes, index = glfw_key - 0x20
@@ -379,7 +379,8 @@ inline constexpr ActionInfo kActions[] = {
 // entry 0 of the table (id 0), kept out of kActions so that kActions keeps the ids 1..134
 inline constexpr ActionInfo kAction0 = {0, "action_axis_ui_navigate_x", 6, 106, 49, 2101, 0x0, 9, 0, 0};
 
-inline constexpr std::uint32_t kActionTableRva = 0xd06aa0, kActionTableGuardRva = 0xd198cc, kActionTableAccessorRva = 0x21abb0, kActionEntryCtorRva = 0x218880, kActionsResetRva = 0x278840;
+// the table of the actions in the game (REPORT 3.120 follow-up)
+inline constexpr std::uint32_t kActionTableRva = 0xd07a80, kActionTableGuardRva = 0xd1a8ac, kActionTableAccessorRva = 0x21abb0, kActionEntryCtorRva = 0x218880, kActionsResetRva = 0x278840;
 inline constexpr std::uint32_t kActionEntrySize = 0x58, kActionEntryCount = 135;
 inline constexpr std::uint32_t kEntryKey = 0x28, kEntryKeyDefault = 0x2c, kEntryMouse = 0x30, kEntryMouseDefault = 0x34, kEntryPadButton = 0x38, kEntryPadButtonDefault = 0x3c, kEntryPadController = 0x40, kEntryPadControllerDefault = 0x44, kEntryPadAxis = 0x48, kEntryPadAxisDefault = 0x4c;
 

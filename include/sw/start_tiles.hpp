@@ -11,7 +11,7 @@ namespace sw::start_tiles {
 inline constexpr int kOptionCount = 3;
 
 
-inline constexpr std::uint32_t kRvaMenuVtable = 0xb78020;
+inline constexpr std::uint32_t kRvaMenuVtable = 0xb792a0;
 inline constexpr std::uint32_t kRvaMenuTick = 0x6ecac0;       // slot 3, every frame
 inline constexpr std::size_t kOffMenuDescription[kOptionCount] = {0x160, 0x150, 0x140};
 inline constexpr std::size_t kOffMenuSelector = 0xa8;          // the selector of the start
@@ -20,8 +20,8 @@ inline constexpr std::size_t kOffMenuMultiplayerFlag = 0x139;  // byte: use the 
 inline constexpr std::uint32_t kLocDescription[kOptionCount] = {0x1c8, 0x1c9, 0x1ca};
 inline constexpr std::uint32_t kLocLocationTitle = 0x388;      // title of the location pane
 
-inline constexpr std::uint32_t kRvaStartStruct[kOptionCount] = {0xceedf0, 0xcf4f80, 0xcf31e0};
-inline constexpr std::uint32_t kRvaStartStructMultiplayer = 0xceee60;  // replaces the third
+inline constexpr std::uint32_t kRvaStartStruct[kOptionCount] = {0xcefdd0, 0xcf5f60, 0xcf41c0};
+inline constexpr std::uint32_t kRvaStartStructMultiplayer = 0xcefe40;  // replaces the third
 inline constexpr std::size_t kOffTile = 0x10;
 inline constexpr std::size_t kOffAridTile = 0x20;
 
@@ -33,7 +33,7 @@ inline constexpr const char* kDefaultAridTile[kOptionCount] = {
 inline constexpr const char* kMultiplayerTile = "data/tiles/island_43_multiplayer_base.xml";
 
 inline constexpr std::uint32_t kRvaBuildUi = 0x83a7b0;      // main_menu_state::build_ui
-inline constexpr std::uint32_t kRvaAddBase = 0x847c40;      // (state, ctx, title*, key*, description*)
+inline constexpr std::uint32_t kRvaAddBase = 0x847fb0;      // (state, ctx, title*, key*, description*)
 inline constexpr std::size_t kOffStateInterface = 0xbdbb0;  // state -> the menu interface
 inline constexpr std::size_t kOffInterfaceNewGame = 0x78;   // interface -> new game menu
 inline constexpr std::size_t kOffInterfaceLocations = 0x80; // interface -> location selector

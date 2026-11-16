@@ -9,7 +9,7 @@
 
 namespace sw::flags {
 
-inline constexpr std::uint32_t kRvaDesignTable = 0xcc3970;   // in .data
+inline constexpr std::uint32_t kRvaDesignTable = 0xcc4970;   // in .data
 inline constexpr int kDesignCount = 162;
 inline constexpr std::size_t kDesignStride = 20;             // category, loc id, x, y, z (int each)
 inline constexpr std::uint32_t kRvaDesignTableFill = 0x8ad30;  // writes the cells at the start

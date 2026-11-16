@@ -287,11 +287,11 @@ inline constexpr std::size_t kOffContextSwapBuffers = 0x248;
 inline constexpr std::size_t kOffWindowDc = 0x270;                // window + 0x270 = the device context
 
 // Render target classes (vtable RVAs), the factories on the resource manager, and the fields.
-inline constexpr std::uint32_t kVtableTargetBase = 0xb11770;
-inline constexpr std::uint32_t kVtableTarget = 0xb0a778;
-inline constexpr std::uint32_t kVtableTargetMultiple = 0xb5c4d8;
-inline constexpr std::uint32_t kVtableTargetMultisample = 0xb0cd40;
-inline constexpr std::uint32_t kVtableTargetMipmapped = 0xb06980;
+inline constexpr std::uint32_t kVtableTargetBase = 0xb127f0;
+inline constexpr std::uint32_t kVtableTarget = 0xb0b6e8;
+inline constexpr std::uint32_t kVtableTargetMultiple = 0xb5d438;
+inline constexpr std::uint32_t kVtableTargetMultisample = 0xb0dd98;
+inline constexpr std::uint32_t kVtableTargetMipmapped = 0xb079a0;
 inline constexpr std::uint32_t kRvaCreateTarget = 0x1b2630;            // (manager, w, h, colour, depth, name)
 inline constexpr std::uint32_t kRvaCreateTargetMultiple = 0x1b2940;
 inline constexpr std::uint32_t kRvaCreateTargetMultisample = 0x1b2ad0;

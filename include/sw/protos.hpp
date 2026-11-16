@@ -40,33 +40,33 @@ inline constexpr std::uint8_t kLuaTypeNumber = 3;
 inline constexpr std::uint8_t kLuaTypeInteger = 19;
 inline constexpr std::uint8_t kLuaTypeString = 4;
 
-inline constexpr std::uint32_t kRvaOperatorNew = 0x95c6f8;
+inline constexpr std::uint32_t kRvaOperatorNew = 0x95ca68;
 inline constexpr std::uint32_t kRvaStringReserve = 0x17ca10;
-inline constexpr std::uint32_t kRvaFree = 0x9b6750;
-inline constexpr std::uint32_t kRvaMemAllocAligned = 0x9b676c;
+inline constexpr std::uint32_t kRvaFree = 0x9b6ac0;
+inline constexpr std::uint32_t kRvaMemAllocAligned = 0x9b6adc;
 
 inline constexpr std::uint32_t kRvaStringAssign = 0x17b4a0;
 inline constexpr std::uint32_t kRvaStringBufFree = 0x17b520;
 inline constexpr std::uint32_t kRvaStringClear = 0x17b550;
 inline constexpr std::uint32_t kRvaMmStringConcat = 0x17b9a0;
 
-inline constexpr std::uint32_t kRvaMemset = 0x9a0b20;
-inline constexpr std::uint32_t kRvaMemcpy = 0x9a0db0;
-inline constexpr std::uint32_t kRvaMemCmp = 0x9a14e0;
+inline constexpr std::uint32_t kRvaMemset = 0x9a0e90;
+inline constexpr std::uint32_t kRvaMemcpy = 0x9a1120;
+inline constexpr std::uint32_t kRvaMemCmp = 0x9a1850;
 
-inline constexpr std::uint32_t kRvaSinf = 0x9da8b0;
-inline constexpr std::uint32_t kRvaCosf = 0x9d8810;
-inline constexpr std::uint32_t kRvaSqrtDouble = 0x9dafa8;
-inline constexpr std::uint32_t kRvaSqrtFloat = 0x9db074;
-inline constexpr std::uint32_t kRvaMathSin = 0x9da340;
-inline constexpr std::uint32_t kRvaMathCos = 0x9d8290;
-inline constexpr std::uint32_t kRvaMathFloor = 0x9d93b8;
-inline constexpr std::uint32_t kRvaMathFmod = 0x9d97c4;
-inline constexpr std::uint32_t kRvaStrNCmp = 0x9a4ce0;
-inline constexpr std::uint32_t kRvaArenaAlloc = 0x8ecdd0;
-inline constexpr std::uint32_t kRvaCrtRand = 0x9b342c;
-inline constexpr std::uint32_t kRvaCrtErrnoGet = 0x9b03b8;
-inline constexpr std::uint32_t kRvaCrtHeapFree = 0x9c1294;
+inline constexpr std::uint32_t kRvaSinf = 0x9dac20;
+inline constexpr std::uint32_t kRvaCosf = 0x9d8b80;
+inline constexpr std::uint32_t kRvaSqrtDouble = 0x9db318;
+inline constexpr std::uint32_t kRvaSqrtFloat = 0x9db3e4;
+inline constexpr std::uint32_t kRvaMathSin = 0x9da6b0;
+inline constexpr std::uint32_t kRvaMathCos = 0x9d8600;
+inline constexpr std::uint32_t kRvaMathFloor = 0x9d9728;
+inline constexpr std::uint32_t kRvaMathFmod = 0x9d9b34;
+inline constexpr std::uint32_t kRvaStrNCmp = 0x9a5050;
+inline constexpr std::uint32_t kRvaArenaAlloc = 0x8ed140;
+inline constexpr std::uint32_t kRvaCrtRand = 0x9b379c;
+inline constexpr std::uint32_t kRvaCrtErrnoGet = 0x9b0728;
+inline constexpr std::uint32_t kRvaCrtHeapFree = 0x9c1604;
 inline constexpr std::uint32_t kRvaMat3Mul = 0x1773a0;
 inline constexpr std::uint32_t kRvaMat3Identity = 0x176860;
 inline constexpr std::uint32_t kRvaMat3FromInts = 0x17a9a0;
@@ -118,14 +118,14 @@ using LuaValueToFloatFn = int (*)(const LuaValue* value, double* target);
 using LuaNumberToStringFn = void (*)(std::uintptr_t lua_state, LuaValue* value);
 
 
-inline constexpr std::uint32_t kRvaAddChild = 0x8f43e0;  // child onto the child list
+inline constexpr std::uint32_t kRvaAddChild = 0x8f4750;  // child onto the child list
 inline constexpr std::uint32_t kRvaRectCtor = 0x245660;   // c_ui_element_rectangle
-inline constexpr std::uint32_t kRvaRectVtable = 0xb9c338; // vtable of the rectangle
+inline constexpr std::uint32_t kRvaRectVtable = 0xb9d840; // vtable of the rectangle
 inline constexpr std::uint32_t kRvaTextCtor = 0x246ab0;   // c_ui_element_text
-inline constexpr std::uint32_t kRvaTextVtable = 0xbac908; // vtable of the text
+inline constexpr std::uint32_t kRvaTextVtable = 0xbad840; // vtable of the text
 inline constexpr std::uint32_t kRvaTextSet = 0x246f00;    // replace the text
 inline constexpr std::uint32_t kRvaButtonFactory = 0x263820;   // button factory
-inline constexpr std::uint32_t kRvaPointButtonVtable = 0xaf2af0; // c_ui_element_point_button
+inline constexpr std::uint32_t kRvaPointButtonVtable = 0xaf39b8; // c_ui_element_point_button
 inline constexpr std::uint32_t kRvaPointButtonCtor = 0x24a320;   // sets the vtable
 inline constexpr std::uint32_t kRvaButtonRelease = 0x24aa20;     // button slot 18: release
 inline constexpr std::uint32_t kRvaHitTest = 0x1dfe60;           // hit test (slot 7)
@@ -195,7 +195,7 @@ inline constexpr std::uint32_t kRvaMenuRootBuild = 0x704db0;  // c_ui_main_menu_
 inline constexpr std::uint32_t kRvaMenuViewTick = 0x700310;   // c_ui_main_menu_default_view, slot 3
 inline constexpr std::size_t kViewButtonFields[] = {0x80, 0x70, 0x78, 0x98, 0x88, 0x90};
 
-inline constexpr std::uint32_t kRvaLoadVtable = 0xafe930;  // vtable of the loading screen
+inline constexpr std::uint32_t kRvaLoadVtable = 0xaff810;  // vtable of the loading screen
 inline constexpr std::uint32_t kRvaLoadInit = 0x62cf10;    // slot 1 (construction, rdx = ctx)
 inline constexpr std::uint32_t kRvaLoadText = 0x62d080;    // (screen, ctx, mm_string*) - set the text
 inline constexpr std::uint32_t kRvaLoadTick = 0x251370;    // slot 3 (every frame)
@@ -205,7 +205,7 @@ inline constexpr std::size_t kOffLoadCtxOffset = 0xbd750;
 inline constexpr std::uint32_t kRvaWorldLoad = 0x741cf0;
 
 
-inline constexpr std::uint32_t kRvaSplashVtable = 0xb14230;
+inline constexpr std::uint32_t kRvaSplashVtable = 0xb15180;
 inline constexpr std::uint32_t kRvaSplashUpdate = 0x27dfd0;
 inline constexpr std::uint32_t kRvaSplashDraw = 0x27e330;
 inline constexpr std::uint32_t kRvaSplashBuild = 0x27d600;
@@ -216,7 +216,7 @@ inline constexpr std::size_t kOffSplashDisplay = 0x324;
 inline constexpr std::uint32_t kRvaOceanDepth = 0x2c48f0;
 inline constexpr std::uint32_t kRvaDefFind = 0x576680;
 inline constexpr std::uint32_t kRvaCellSet = 0x577860;
-inline constexpr std::uint32_t kRvaArea = 0x8b9420;
+inline constexpr std::uint32_t kRvaArea = 0x8b9790;
 inline constexpr std::uint32_t kRvaWaveRaster = 0x57cfc0;
 
 inline constexpr std::size_t kOffDefList = 0x28;     // list of the tile definitions

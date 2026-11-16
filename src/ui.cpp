@@ -25,8 +25,8 @@ constexpr std::size_t kOffCbUser = 0xe0;
 constexpr std::size_t kViewButtonFields[] = {0x80, 0x70, 0x78, 0x98, 0x88, 0x90};
 constexpr std::size_t kSlotInit = 1;
 constexpr std::size_t kSlotAttach = 29;
-constexpr std::uint32_t kVtablePointButton = 0xaf2af0;
-constexpr std::uint32_t kVtableText = 0xbac908;   // c_ui_element_text
+constexpr std::uint32_t kVtablePointButton = 0xaf39b8;
+constexpr std::uint32_t kVtableText = 0xbad840;   // c_ui_element_text
 constexpr float kArg9 = 0.42f;
 constexpr float kArg10 = 0.14f;
 

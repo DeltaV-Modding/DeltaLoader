@@ -30,14 +30,14 @@ inline constexpr std::uint32_t kRvaGraphicsAssetsInit = 0x6b20c0;
 inline constexpr std::size_t kOffFlagTexture = 0x50;
 
 
-inline constexpr std::uint32_t kVtableFlagComponent = 0xafd938;      // c_scene_vehicle_component_flag
+inline constexpr std::uint32_t kVtableFlagComponent = 0xafeae8;      // c_scene_vehicle_component_flag
 inline constexpr std::size_t kFlagComponentSize = 0x2c8;
-inline constexpr std::uint32_t kVtableMaterialFlag = 0xb09540;       // c_material_flag
-inline constexpr std::uint32_t kVtableMaterialFlagClip = 0xb4def0;   // c_material_flag_clip
-inline constexpr std::uint32_t kVtablePropertyFlag = 0xb724c0;       // c_properties_element_flag
-inline constexpr std::uint32_t kVtablePropertyFlag64 = 0xafb9b0;     // c_properties_element_flag_64
-inline constexpr std::uint32_t kVtableUiPropertyFlag = 0xb78c88;     // c_ui_properties_element_flag
-inline constexpr std::uint32_t kVtableUiPropertyFlag128 = 0xb7ad00;  // c_ui_properties_element_flag_128
+inline constexpr std::uint32_t kVtableMaterialFlag = 0xb0a5c0;       // c_material_flag
+inline constexpr std::uint32_t kVtableMaterialFlagClip = 0xb4f148;   // c_material_flag_clip
+inline constexpr std::uint32_t kVtablePropertyFlag = 0xb73410;       // c_properties_element_flag
+inline constexpr std::uint32_t kVtablePropertyFlag64 = 0xafcbe0;     // c_properties_element_flag_64
+inline constexpr std::uint32_t kVtableUiPropertyFlag = 0xb79bf8;     // c_ui_properties_element_flag
+inline constexpr std::uint32_t kVtableUiPropertyFlag128 = 0xb7bea8;  // c_ui_properties_element_flag_128
 
 // The file format.
 inline constexpr std::size_t kTxtrHeaderSize = 23;
