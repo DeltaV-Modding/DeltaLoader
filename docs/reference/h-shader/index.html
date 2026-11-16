@@ -29,8 +29,8 @@
 <span class="tk-c">//   void sw_mod_start() {</span>
 <span class="tk-c">//       if (!sw::shader::start()) return;                         // the game does not match: nothing happens</span>
 <span class="tk-c">//       std::string error;</span>
-<span class="tk-c">//       if (!sw::shader::texture(&quot;u_noise&quot;, sw::shader::mod_file(L&quot;noise.png&quot;), {}, &amp;error))</span>
-<span class="tk-c">//           sw::mod::log(&quot;noise.png: %s&quot;, error.c_str());</span>
+<span class="tk-c">//       if (!sw::shader::texture(&quot;u_noise&quot;, L&quot;textures/noise.png&quot;, {}, &amp;error))   // &lt;game&gt;\mods\&lt;your mod&gt;\graphics\textures\noise.png</span>
+<span class="tk-c">//           sw::mod::log(&quot;noise: %s&quot;, error.c_str());</span>
 <span class="tk-c">//       sw::shader::uniform(&quot;u_strength&quot;, 0.5f);</span>
 <span class="tk-c">//       sw::shader::uniform(&quot;u_tint&quot;, 1.0f, 0.8f, 0.6f);</span>
 <span class="tk-c">//       while (sw::mod::sleep(100)) {</span>
@@ -43,6 +43,10 @@
 <span class="tk-c">// unit; a unit someone else cleared is bound again at the next frame end (native/tests/texture_uniform_test.cpp). Every GL</span>
 <span class="tk-c">// function used is loaded by the game (gl_functions.tsv; swapi_test checks the table).</span>
 <span class="tk-c">// NOT TRIED in a running game. Pictures: PNG, JPEG, BMP, GIF, TIFF, or a .txtr of the game. At most 16 textures.</span>
+<span class="tk-c">//</span>
+<span class="tk-c">// WHERE YOUR PICTURES GO: like the game's own in rom\graphics, a mod keeps them in its folder under graphics, with any</span>
+<span class="tk-c">// subfolders you like: &lt;game&gt;\mods\&lt;your mod&gt;\graphics\textures\noise.png is texture(&quot;u_noise&quot;, L&quot;textures/noise.png&quot;).</span>
+<span class="tk-c">// A relative path is looked up by graphics_file() (see the end of this file); a full path is used as it is.</span>
 
 <span class="tk-p">#include &quot;sw/render.hpp&quot;</span>
 
@@ -66,8 +70,25 @@
 <span class="tk-c">// Shows the picture in the sampler `name` of every shader that declares it. Calling it again with the same name swaps the</span>
 <span class="tk-c">// picture. `options`: repeat (else clamp), linear (else nearest), mipmaps, srgb (a colour picture; leave it off for data</span>
 <span class="tk-c">// such as noise or normals).</span>
+<span class="tk-c">// `path`: relative to your mod's graphics folder (L&quot;textures/noise.png&quot;, subfolders allowed, / or \), or a full path.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">graphics_file</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; relative);
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">graphics_tried</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; relative);
 <span class="tk-kw">inline</span> <span class="tk-kw">bool</span> <span class="tk-f">texture</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name, <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; path, <span class="tk-kw">const</span> TextureOptions&amp; options = {}, <span class="tk-kw">std</span>::<span class="tk-kw">string</span>* error = <span class="tk-kw">nullptr</span>) {
-    <span class="tk-kw">return</span> sw::render::<span class="tk-f">texture_uniform</span>(name, path, options, error);
+    <span class="tk-kw">const</span> <span class="tk-kw">bool</span> full = (path.<span class="tk-f">size</span>() &gt; <span class="tk-n">1</span> &amp;&amp; path[<span class="tk-n">1</span>] == L<span class="tk-s">':'</span>) || (!path.<span class="tk-f">empty</span>() &amp;&amp; (path[<span class="tk-n">0</span>] == L<span class="tk-s">'\\'</span> || path[<span class="tk-n">0</span>] == L<span class="tk-s">'/'</span>) &amp;&amp;
+                                                                path.<span class="tk-f">size</span>() &gt; <span class="tk-n">1</span> &amp;&amp; (path[<span class="tk-n">1</span>] == L<span class="tk-s">'\\'</span> || path[<span class="tk-n">1</span>] == L<span class="tk-s">'/'</span>));
+    <span class="tk-kw">if</span> (full) <span class="tk-kw">return</span> sw::render::<span class="tk-f">texture_uniform</span>(name, path, options, error);
+    <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring found = <span class="tk-f">graphics_file</span>(path);
+    <span class="tk-kw">if</span> (found.<span class="tk-f">empty</span>()) {
+        <span class="tk-kw">if</span> (error) {
+            <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring tried = <span class="tk-f">graphics_tried</span>(path);
+            <span class="tk-kw">const</span> <span class="tk-kw">int</span> n = <span class="tk-f">WideCharToMultiByte</span>(CP_UTF8, <span class="tk-n">0</span>, tried.<span class="tk-f">c_str</span>(), -<span class="tk-n">1</span>, <span class="tk-kw">nullptr</span>, <span class="tk-n">0</span>, <span class="tk-kw">nullptr</span>, <span class="tk-kw">nullptr</span>);
+            <span class="tk-kw">std</span>::<span class="tk-kw">string</span> <span class="tk-f">text</span>(n &gt; <span class="tk-n">1</span> ? static_cast&lt;size_t&gt;(n - <span class="tk-n">1</span>) : <span class="tk-n">0</span>, <span class="tk-s">'\0'</span>);
+            <span class="tk-kw">if</span> (n &gt; <span class="tk-n">1</span>) <span class="tk-f">WideCharToMultiByte</span>(CP_UTF8, <span class="tk-n">0</span>, tried.<span class="tk-f">c_str</span>(), -<span class="tk-n">1</span>, text.<span class="tk-f">data</span>(), n, <span class="tk-kw">nullptr</span>, <span class="tk-kw">nullptr</span>);
+            *error = <span class="tk-s">&quot;not found, looked in: &quot;</span> + text;
+        }
+        <span class="tk-kw">return</span> <span class="tk-kw">false</span>;
+    }
+    <span class="tk-kw">return</span> sw::render::<span class="tk-f">texture_uniform</span>(name, found, options, error);
 }
 <span class="tk-c">// Your own pixels: width * height * 4 bytes, RGBA, row by row from the top.</span>
 <span class="tk-kw">inline</span> <span class="tk-kw">bool</span> <span class="tk-f">texture</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name, <span class="tk-kw">const</span> <span class="tk-kw">std</span>::uint8_t* rgba, <span class="tk-kw">int</span> width, <span class="tk-kw">int</span> height, <span class="tk-kw">const</span> TextureOptions&amp; options = {}) {
@@ -101,19 +122,165 @@
 <span class="tk-c">// Stops setting a number uniform (the shader keeps the last value).</span>
 <span class="tk-kw">inline</span> <span class="tk-kw">void</span> <span class="tk-f">remove_uniform</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* name) { sw::render::<span class="tk-f">keep_uniform</span>(name, <span class="tk-kw">nullptr</span>, <span class="tk-n">0</span>); }
 
-<span class="tk-c">// ---- files next to your mod ---------------------------------------------------------------------------------------------</span>
-<span class="tk-c">// The full path of a file in the folder of this mod's DLL, e.g. mod_file(L&quot;noise.png&quot;). Empty if the DLL is not found.</span>
+<span class="tk-c">// ---- your mod's files ---------------------------------------------------------------------------------------------------</span>
+<span class="tk-c">// swinject does not load your DLL where it lies: it loads a copy %TEMP%\swmods\&lt;name&gt;.&lt;n&gt;.dll (so the next build can</span>
+<span class="tk-c">// overwrite the original). The folder of the DLL is therefore no place for pictures. Your mod folder is</span>
+<span class="tk-c">// &lt;game&gt;\mods\&lt;mod&gt;\, where &lt;mod&gt; is the name of SW_MOD(&quot;...&quot;) or the file name of the DLL without &quot;.dll&quot; / &quot;.&lt;n&gt;.dll&quot;.</span>
+<span class="tk-kw">namespace</span> detail {
+
+<span class="tk-kw">inline</span> <span class="tk-kw">bool</span> <span class="tk-f">is_file</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; p) {
+    <span class="tk-kw">const</span> DWORD a = <span class="tk-f">GetFileAttributesW</span>(p.<span class="tk-f">c_str</span>());
+    <span class="tk-kw">return</span> a != INVALID_FILE_ATTRIBUTES &amp;&amp; !(a &amp; FILE_ATTRIBUTE_DIRECTORY);
+}
+<span class="tk-kw">inline</span> <span class="tk-kw">bool</span> <span class="tk-f">is_folder</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; p) {
+    <span class="tk-kw">const</span> DWORD a = <span class="tk-f">GetFileAttributesW</span>(p.<span class="tk-f">c_str</span>());
+    <span class="tk-kw">return</span> a != INVALID_FILE_ATTRIBUTES &amp;&amp; (a &amp; FILE_ATTRIBUTE_DIRECTORY);
+}
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">parent</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; p) {
+    <span class="tk-kw">const</span> <span class="tk-kw">auto</span> slash = p.<span class="tk-f">find_last_of</span>(L<span class="tk-s">&quot;\\/&quot;</span>);
+    <span class="tk-kw">return</span> slash == <span class="tk-kw">std</span>::wstring::npos ? <span class="tk-kw">std</span>::<span class="tk-f">wstring</span>() : p.<span class="tk-f">substr</span>(<span class="tk-n">0</span>, slash);
+}
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">leaf</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; p) {
+    <span class="tk-kw">const</span> <span class="tk-kw">auto</span> slash = p.<span class="tk-f">find_last_of</span>(L<span class="tk-s">&quot;\\/&quot;</span>);
+    <span class="tk-kw">return</span> slash == <span class="tk-kw">std</span>::wstring::npos ? p : p.<span class="tk-f">substr</span>(slash + <span class="tk-n">1</span>);
+}
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">lower</span>(<span class="tk-kw">std</span>::wstring s) {
+    <span class="tk-kw">for</span> (<span class="tk-kw">auto</span>&amp; ch : s) ch = static_cast&lt;wchar_t&gt;(<span class="tk-f">towlower</span>(ch));
+    <span class="tk-kw">return</span> s;
+}
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">widen</span>(<span class="tk-kw">const</span> <span class="tk-kw">char</span>* s) {
+    <span class="tk-kw">if</span> (!s || !*s) <span class="tk-kw">return</span> {};
+    <span class="tk-kw">const</span> <span class="tk-kw">int</span> n = <span class="tk-f">MultiByteToWideChar</span>(CP_UTF8, <span class="tk-n">0</span>, s, -<span class="tk-n">1</span>, <span class="tk-kw">nullptr</span>, <span class="tk-n">0</span>);
+    <span class="tk-kw">if</span> (n &lt;= <span class="tk-n">1</span>) <span class="tk-kw">return</span> {};
+    <span class="tk-kw">std</span>::wstring <span class="tk-f">w</span>(static_cast&lt;size_t&gt;(n - <span class="tk-n">1</span>), L<span class="tk-s">'\0'</span>);
+    <span class="tk-f">MultiByteToWideChar</span>(CP_UTF8, <span class="tk-n">0</span>, s, -<span class="tk-n">1</span>, w.<span class="tk-f">data</span>(), n);
+    <span class="tk-kw">return</span> w;
+}
+<span class="tk-c">// &quot;textures/noise.png&quot; -&gt; &quot;textures\noise.png&quot;; a leading separator and &quot;graphics\&quot; are dropped.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">clean</span>(<span class="tk-kw">std</span>::wstring rel) {
+    <span class="tk-kw">for</span> (<span class="tk-kw">auto</span>&amp; ch : rel) <span class="tk-kw">if</span> (ch == L<span class="tk-s">'/'</span>) ch = L<span class="tk-s">'\\'</span>;
+    <span class="tk-kw">while</span> (!rel.<span class="tk-f">empty</span>() &amp;&amp; rel[<span class="tk-n">0</span>] == L<span class="tk-s">'\\'</span>) rel.<span class="tk-f">erase</span>(<span class="tk-n">0</span>, <span class="tk-n">1</span>);
+    <span class="tk-kw">if</span> (<span class="tk-f">lower</span>(rel.<span class="tk-f">substr</span>(<span class="tk-n">0</span>, <span class="tk-n">9</span>)) == L<span class="tk-s">&quot;graphics\\&quot;</span>) rel.<span class="tk-f">erase</span>(<span class="tk-n">0</span>, <span class="tk-n">9</span>);
+    <span class="tk-kw">return</span> rel;
+}
+<span class="tk-kw">inline</span> HMODULE <span class="tk-f">self</span>() {
+    HMODULE module = <span class="tk-kw">nullptr</span>;
+    <span class="tk-f">GetModuleHandleExW</span>(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast&lt;LPCWSTR&gt;(&amp;self), &amp;module);
+    <span class="tk-kw">return</span> module;
+}
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">module_path</span>(HMODULE module) {
+    wchar_t path[MAX_PATH * <span class="tk-n">2</span>] = {};
+    <span class="tk-kw">const</span> DWORD n = <span class="tk-f">GetModuleFileNameW</span>(module, path, static_cast&lt;DWORD&gt;(MAX_PATH * <span class="tk-n">2</span>));
+    <span class="tk-kw">return</span> (n == <span class="tk-n">0</span> || n &gt;= MAX_PATH * <span class="tk-n">2</span>) ? <span class="tk-kw">std</span>::<span class="tk-f">wstring</span>() : <span class="tk-kw">std</span>::<span class="tk-f">wstring</span>(path, n);
+}
+<span class="tk-c">// The names your mod folder may have: SW_MOD(&quot;name&quot;) (exported as swmod_name), and the DLL file name before the first dot.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::wstring&gt; <span class="tk-f">mod_names</span>(HMODULE module) {
+    <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::wstring&gt; names;
+    <span class="tk-kw">using</span> name_fn = <span class="tk-kw">const</span> <span class="tk-kw">char</span>* (*)();
+    <span class="tk-kw">if</span> (module) {
+        <span class="tk-kw">if</span> (<span class="tk-kw">auto</span> fn = reinterpret_cast&lt;name_fn&gt;(reinterpret_cast&lt;<span class="tk-kw">void</span>*&gt;(<span class="tk-f">GetProcAddress</span>(module, <span class="tk-s">&quot;swmod_name&quot;</span>))))
+            <span class="tk-kw">if</span> (<span class="tk-kw">auto</span> w = <span class="tk-f">widen</span>(<span class="tk-f">fn</span>()); !w.<span class="tk-f">empty</span>()) names.<span class="tk-f">push_back</span>(w);
+        <span class="tk-kw">std</span>::wstring stem = <span class="tk-f">leaf</span>(<span class="tk-f">module_path</span>(module));
+        stem = stem.<span class="tk-f">substr</span>(<span class="tk-n">0</span>, stem.<span class="tk-f">find</span>(L<span class="tk-s">'.'</span>));
+        <span class="tk-kw">if</span> (!stem.<span class="tk-f">empty</span>() &amp;&amp; (names.<span class="tk-f">empty</span>() || <span class="tk-f">lower</span>(names[<span class="tk-n">0</span>]) != <span class="tk-f">lower</span>(stem))) names.<span class="tk-f">push_back</span>(stem);
+    }
+    <span class="tk-kw">return</span> names;
+}
+<span class="tk-c">// The mod folders the launcher lists for the virtual file system (%APPDATA%\DeltaVModdingLauncher\vfs_folders.txt).</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::wstring&gt; <span class="tk-f">launcher_folders</span>() {
+    <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::wstring&gt; out;
+    wchar_t appdata[MAX_PATH] = {};
+    <span class="tk-kw">if</span> (<span class="tk-f">GetEnvironmentVariableW</span>(L<span class="tk-s">&quot;APPDATA&quot;</span>, appdata, MAX_PATH) == <span class="tk-n">0</span>) <span class="tk-kw">return</span> out;
+    <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring list = <span class="tk-kw">std</span>::<span class="tk-f">wstring</span>(appdata) + L<span class="tk-s">&quot;\\DeltaVModdingLauncher\\vfs_folders.txt&quot;</span>;
+    HANDLE f = <span class="tk-f">CreateFileW</span>(list.<span class="tk-f">c_str</span>(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, <span class="tk-kw">nullptr</span>, OPEN_EXISTING, <span class="tk-n">0</span>, <span class="tk-kw">nullptr</span>);
+    <span class="tk-kw">if</span> (f == INVALID_HANDLE_VALUE) <span class="tk-kw">return</span> out;
+    <span class="tk-kw">std</span>::<span class="tk-kw">string</span> text;
+    <span class="tk-kw">char</span> buffer[<span class="tk-n">4096</span>];
+    DWORD got = <span class="tk-n">0</span>;
+    <span class="tk-kw">while</span> (<span class="tk-f">ReadFile</span>(f, buffer, <span class="tk-kw">sizeof</span>(buffer), &amp;got, <span class="tk-kw">nullptr</span>) &amp;&amp; got &gt; <span class="tk-n">0</span> &amp;&amp; text.<span class="tk-f">size</span>() &lt; (<span class="tk-n">1</span>u &lt;&lt; <span class="tk-n">20</span>)) text.<span class="tk-f">append</span>(buffer, got);
+    <span class="tk-f">CloseHandle</span>(f);
+    size_t at = <span class="tk-n">0</span>;
+    <span class="tk-kw">while</span> (at &lt; text.<span class="tk-f">size</span>()) {
+        size_t nl = text.<span class="tk-f">find</span>(<span class="tk-s">'\n'</span>, at);
+        <span class="tk-kw">if</span> (nl == <span class="tk-kw">std</span>::<span class="tk-kw">string</span>::npos) nl = text.<span class="tk-f">size</span>();
+        <span class="tk-kw">std</span>::<span class="tk-kw">string</span> line = text.<span class="tk-f">substr</span>(at, nl - at);
+        <span class="tk-kw">while</span> (!line.<span class="tk-f">empty</span>() &amp;&amp; (line.<span class="tk-f">back</span>() == <span class="tk-s">'\r'</span> || line.<span class="tk-f">back</span>() == <span class="tk-s">' '</span>)) line.<span class="tk-f">pop_back</span>();
+        <span class="tk-kw">if</span> (!line.<span class="tk-f">empty</span>()) out.<span class="tk-f">push_back</span>(<span class="tk-f">widen</span>(line.<span class="tk-f">c_str</span>()));
+        at = nl + <span class="tk-n">1</span>;
+    }
+    <span class="tk-kw">return</span> out;
+}
+
+}  <span class="tk-c">// namespace detail</span>
+
+<span class="tk-c">// The folders graphics_file() looks in, in this order (the first that has the file wins):</span>
+<span class="tk-c">//   1. &lt;game&gt;\mods\&lt;mod&gt;\graphics                 your mod folder (&lt;mod&gt; = SW_MOD name, then the DLL name)</span>
+<span class="tk-c">//   2. &lt;listed mod folder&gt;\graphics               a folder of the launcher's list whose name is &lt;mod&gt;</span>
+<span class="tk-c">//   3. &lt;folder of the DLL&gt;\graphics, and the folder of the DLL itself (a DLL that is loaded where it lies)</span>
+<span class="tk-c">//   4. &lt;game&gt;\rom\graphics                         the game's own pictures</span>
+<span class="tk-c">// `game` is the game folder (empty = the folder of the running exe).</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::wstring&gt; <span class="tk-f">graphics_folders</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; game = {}) {
+    <span class="tk-kw">const</span> HMODULE module = detail::<span class="tk-f">self</span>();
+    <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring root = game.<span class="tk-f">empty</span>() ? detail::<span class="tk-f">parent</span>(detail::<span class="tk-f">module_path</span>(<span class="tk-kw">nullptr</span>)) : game;
+    <span class="tk-kw">const</span> <span class="tk-kw">auto</span> names = detail::<span class="tk-f">mod_names</span>(module);
+    <span class="tk-kw">std</span>::vector&lt;<span class="tk-kw">std</span>::wstring&gt; out;
+    <span class="tk-kw">auto</span> add = [&amp;](<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; dir) {
+        <span class="tk-kw">if</span> (dir.<span class="tk-f">empty</span>()) <span class="tk-kw">return</span>;
+        <span class="tk-kw">for</span> (<span class="tk-kw">const</span> <span class="tk-kw">auto</span>&amp; have : out) <span class="tk-kw">if</span> (detail::<span class="tk-f">lower</span>(have) == detail::<span class="tk-f">lower</span>(dir)) <span class="tk-kw">return</span>;
+        out.<span class="tk-f">push_back</span>(dir);
+    };
+    <span class="tk-kw">for</span> (<span class="tk-kw">const</span> <span class="tk-kw">auto</span>&amp; name : names) <span class="tk-f">add</span>(root + L<span class="tk-s">&quot;\\mods\\&quot;</span> + name + L<span class="tk-s">&quot;\\graphics&quot;</span>);
+    <span class="tk-kw">const</span> <span class="tk-kw">auto</span> listed = detail::<span class="tk-f">launcher_folders</span>();
+    <span class="tk-kw">for</span> (<span class="tk-kw">auto</span> it = listed.<span class="tk-f">rbegin</span>(); it != listed.<span class="tk-f">rend</span>(); ++it)   <span class="tk-c">// the last listed wins, as in the virtual file system</span>
+        <span class="tk-kw">for</span> (<span class="tk-kw">const</span> <span class="tk-kw">auto</span>&amp; name : names)
+            <span class="tk-kw">if</span> (detail::<span class="tk-f">lower</span>(detail::<span class="tk-f">leaf</span>(*it)) == detail::<span class="tk-f">lower</span>(name)) <span class="tk-f">add</span>(*it + L<span class="tk-s">&quot;\\graphics&quot;</span>);
+    <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring dll_dir = detail::<span class="tk-f">parent</span>(detail::<span class="tk-f">module_path</span>(module));
+    <span class="tk-kw">if</span> (!dll_dir.<span class="tk-f">empty</span>()) {
+        <span class="tk-f">add</span>(dll_dir + L<span class="tk-s">&quot;\\graphics&quot;</span>);
+        <span class="tk-f">add</span>(dll_dir);
+    }
+    <span class="tk-f">add</span>(root + L<span class="tk-s">&quot;\\rom\\graphics&quot;</span>);
+    <span class="tk-kw">return</span> out;
+}
+
+<span class="tk-c">// The full path of a picture of your mod: graphics_file(L&quot;textures/noise.png&quot;) is</span>
+<span class="tk-c">// &lt;game&gt;\mods\&lt;mod&gt;\graphics\textures\noise.png (subfolders allowed, / or \). Empty if no folder of</span>
+<span class="tk-c">// graphics_folders() has it.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">graphics_file</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; relative, <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; game) {
+    <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring rel = detail::<span class="tk-f">clean</span>(relative);
+    <span class="tk-kw">if</span> (rel.<span class="tk-f">empty</span>()) <span class="tk-kw">return</span> {};
+    <span class="tk-kw">for</span> (<span class="tk-kw">const</span> <span class="tk-kw">auto</span>&amp; dir : <span class="tk-f">graphics_folders</span>(game))
+        <span class="tk-kw">if</span> (detail::<span class="tk-f">is_file</span>(dir + L<span class="tk-s">&quot;\\&quot;</span> + rel)) <span class="tk-kw">return</span> dir + L<span class="tk-s">&quot;\\&quot;</span> + rel;
+    <span class="tk-kw">return</span> {};
+}
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">graphics_file</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; relative) { <span class="tk-kw">return</span> <span class="tk-f">graphics_file</span>(relative, <span class="tk-kw">std</span>::<span class="tk-f">wstring</span>()); }
+
+<span class="tk-c">// The places graphics_file() looked in for `relative`, separated by &quot;; &quot; (for an error message).</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">graphics_tried</span>(<span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring&amp; relative) {
+    <span class="tk-kw">std</span>::wstring text;
+    <span class="tk-kw">for</span> (<span class="tk-kw">const</span> <span class="tk-kw">auto</span>&amp; dir : <span class="tk-f">graphics_folders</span>()) text += (text.<span class="tk-f">empty</span>() ? L<span class="tk-s">&quot;&quot;</span> : L<span class="tk-s">&quot;; &quot;</span>) + dir + L<span class="tk-s">&quot;\\&quot;</span> + detail::<span class="tk-f">clean</span>(relative);
+    <span class="tk-kw">return</span> text;
+}
+
+<span class="tk-c">// Your mod folder &lt;game&gt;\mods\&lt;mod&gt; (or the listed folder of that name); empty if there is none.</span>
+<span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">mod_folder</span>() {
+    <span class="tk-kw">const</span> <span class="tk-kw">auto</span> names = detail::<span class="tk-f">mod_names</span>(detail::<span class="tk-f">self</span>());
+    <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring root = detail::<span class="tk-f">parent</span>(detail::<span class="tk-f">module_path</span>(<span class="tk-kw">nullptr</span>));
+    <span class="tk-kw">for</span> (<span class="tk-kw">const</span> <span class="tk-kw">auto</span>&amp; name : names)
+        <span class="tk-kw">if</span> (detail::<span class="tk-f">is_folder</span>(root + L<span class="tk-s">&quot;\\mods\\&quot;</span> + name)) <span class="tk-kw">return</span> root + L<span class="tk-s">&quot;\\mods\\&quot;</span> + name;
+    <span class="tk-kw">const</span> <span class="tk-kw">auto</span> listed = detail::<span class="tk-f">launcher_folders</span>();
+    <span class="tk-kw">for</span> (<span class="tk-kw">auto</span> it = listed.<span class="tk-f">rbegin</span>(); it != listed.<span class="tk-f">rend</span>(); ++it)
+        <span class="tk-kw">for</span> (<span class="tk-kw">const</span> <span class="tk-kw">auto</span>&amp; name : names)
+            <span class="tk-kw">if</span> (detail::<span class="tk-f">lower</span>(detail::<span class="tk-f">leaf</span>(*it)) == detail::<span class="tk-f">lower</span>(name) &amp;&amp; detail::<span class="tk-f">is_folder</span>(*it)) <span class="tk-kw">return</span> *it;
+    <span class="tk-kw">return</span> {};
+}
+
+<span class="tk-c">// The folder the DLL was loaded from + `name`. For a mod started by swinject that is the copy in %TEMP%\swmods:</span>
+<span class="tk-c">// use graphics_file() / texture(name, L&quot;relative/path&quot;) for pictures instead.</span>
 <span class="tk-kw">inline</span> <span class="tk-kw">std</span>::wstring <span class="tk-f">mod_file</span>(<span class="tk-kw">const</span> wchar_t* name) {
-    HMODULE self = <span class="tk-kw">nullptr</span>;
-    <span class="tk-kw">if</span> (!<span class="tk-f">GetModuleHandleExW</span>(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                            reinterpret_cast&lt;LPCWSTR&gt;(&amp;mod_file), &amp;self))
-        <span class="tk-kw">return</span> {};
-    wchar_t path[MAX_PATH] = {};
-    <span class="tk-kw">const</span> DWORD n = <span class="tk-f">GetModuleFileNameW</span>(self, path, MAX_PATH);
-    <span class="tk-kw">if</span> (n == <span class="tk-n">0</span> || n &gt;= MAX_PATH) <span class="tk-kw">return</span> {};
-    <span class="tk-kw">std</span>::wstring <span class="tk-f">dir</span>(path);
-    <span class="tk-kw">const</span> <span class="tk-kw">auto</span> slash = dir.<span class="tk-f">find_last_of</span>(L<span class="tk-s">&quot;\\/&quot;</span>);
-    <span class="tk-kw">return</span> (slash == <span class="tk-kw">std</span>::wstring::npos ? <span class="tk-kw">std</span>::<span class="tk-f">wstring</span>() : dir.<span class="tk-f">substr</span>(<span class="tk-n">0</span>, slash + <span class="tk-n">1</span>)) + (name ? name : L<span class="tk-s">&quot;&quot;</span>);
+    <span class="tk-kw">const</span> <span class="tk-kw">std</span>::wstring dir = detail::<span class="tk-f">parent</span>(detail::<span class="tk-f">module_path</span>(detail::<span class="tk-f">self</span>()));
+    <span class="tk-kw">return</span> dir.<span class="tk-f">empty</span>() ? <span class="tk-kw">std</span>::<span class="tk-f">wstring</span>() : dir + L<span class="tk-s">&quot;\\&quot;</span> + (name ? name : L<span class="tk-s">&quot;&quot;</span>);
 }
 
 }  <span class="tk-c">// namespace sw::shader</span></code></pre></div><section class="related"><div class="related-head"><h2>Keep reading</h2><span>1 related page</span></div><ul><li><a href="../../reference/overview/"><span class="rel-text"><span class="rel-title">API wiki overview</span><span class="rel-desc">Every hand-written header of the public SDK, with its comments, plus the build layout and short recipes.</span></span><span class="rel-tag">API wiki</span><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9h10M10 5l4 4-4 4"/></svg></a></li></ul></section></article><nav class="pager" aria-label="Previous and next page"><a class="prev" href="../../reference/h-settings/"><span>Previous</span>sw/settings.hpp</a><a class="next" href="../../reference/h-signature/"><span>Next</span>sw/signature.hpp</a></nav><p class="edit">Documentation for game build 1.15.26. Found a mistake? <a href="https://github.com/DeltaV-Modding/DeltaLoader/issues" rel="noopener">Open an issue</a>.</p></main><aside class="toc"></aside></div>
