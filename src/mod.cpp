@@ -25,7 +25,14 @@ std::atomic<bool> g_running{false};
 std::atomic<bool> g_shut_down{false};
 HANDLE g_stop_event = nullptr;
 HANDLE g_thread = nullptr;
+HMODULE g_module = nullptr;
 const char* g_name = "mod";
+std::atomic<bool> g_mapped{false};
+
+// the mod said SW_MOD_ANY_GAME()
+bool any_game() {
+    return g_module && GetProcAddress(g_module, "swmod_any_game") != nullptr;
+}
 
 std::string narrow(const std::wstring& text) {
     if (text.empty()) return {};
@@ -46,17 +53,24 @@ DWORD WINAPI worker(void*) {
     auto& runtime = Runtime::get();
     if (!runtime.attach(true, true)) {
         const auto st = runtime.status();
-        log("NOT STARTED: the game does not match the mapping.");
-        log("  File: %s", narrow(st.image_path).c_str());
-        log("  SHA-256: %s, Signatures %zu/%zu", st.hash_ok ? "OK" : "MISMATCH",
-            st.signature_matches, st.signature_total);
-        log("  Reason: %s", st.error.c_str());
-        return 0;
+        if (!any_game()) {
+            log("NOT STARTED: the game does not match the mapping.");
+            log("  File: %s", narrow(st.image_path).c_str());
+            log("  SHA-256: %s, Signatures %zu/%zu", st.hash_ok ? "OK" : "MISMATCH",
+                st.signature_matches, st.signature_total);
+            log("  Reason: %s", st.error.c_str());
+            return 0;
+        }
+        log("loaded WITHOUT the mapping: this game build is not %.*s build %.*s, the mod says SW_MOD_ANY_GAME()",
+            static_cast<int>(map::kVersion.size()), map::kVersion.data(),
+            static_cast<int>(map::kBuildId.size()), map::kBuildId.data());
+    } else {
+        g_mapped.store(true);
+        log("loaded (game at 0x%llx, mapping %.*s build %.*s)",
+            static_cast<unsigned long long>(runtime.base()),
+            static_cast<int>(map::kVersion.size()), map::kVersion.data(),
+            static_cast<int>(map::kBuildId.size()), map::kBuildId.data());
     }
-    log("loaded (game at 0x%llx, mapping %.*s build %.*s)",
-        static_cast<unsigned long long>(runtime.base()),
-        static_cast<int>(map::kVersion.size()), map::kVersion.data(),
-        static_cast<int>(map::kBuildId.size()), map::kBuildId.data());
 
     g_running.store(true);
     try {
@@ -86,6 +100,8 @@ Runtime& rt() { return Runtime::get(); }
 
 const char* name() { return g_name; }
 
+bool mapped() { return g_mapped.load(); }
+
 void log(const char* format, ...) {
     va_list args;
     va_start(args, format);
@@ -104,6 +120,7 @@ namespace detail {
 int dll_main(void* module, unsigned long reason, const char* name) {
     if (reason == DLL_PROCESS_ATTACH) {
         g_name = name;
+        g_module = static_cast<HMODULE>(module);
         DisableThreadLibraryCalls(static_cast<HMODULE>(module));
         g_stop_event = CreateEventW(nullptr, TRUE, FALSE, nullptr);
         g_thread = CreateThread(nullptr, 0, &worker, nullptr, 0, nullptr);

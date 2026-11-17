@@ -43,6 +43,11 @@
 <span class="tk-kw">bool</span> <span class="tk-f">sleep</span>(<span class="tk-kw">unsigned</span> ms);
 
 
+<span class="tk-c">// true when the game is exactly the build the SDK was made for. Only a mod with SW_MOD_ANY_GAME() ever sees false -</span>
+<span class="tk-c">// then rt() is not attached and you must not use any address from the headers.</span>
+<span class="tk-kw">bool</span> <span class="tk-f">mapped</span>();
+
+
 <span class="tk-c">// The runtime of the game (already connected and checked).</span>
 Runtime&amp; <span class="tk-f">rt</span>();
 
@@ -79,6 +84,13 @@ Runtime&amp; <span class="tk-f">rt</span>();
 <span class="tk-p">#define SW_EXPORT_PLAIN(name, bytes)</span>
 
 <span class="tk-p">#endif</span>
+
+
+<span class="tk-c">// Put SW_MOD_ANY_GAME() under SW_MOD(&quot;...&quot;) if your mod needs no game address (it finds what it changes by itself).</span>
+<span class="tk-c">// Then it keeps running after a game update, before the SDK is updated: swinject loads it on an unknown build (and</span>
+<span class="tk-c">// only mods marked like this) once it has switched the network version of that build. Check sw::mod::mapped().</span>
+<span class="tk-p">#define SW_MOD_ANY_GAME() \</span>
+    <span class="tk-kw">extern</span> <span class="tk-s">&quot;C&quot;</span> <span class="tk-f">__declspec</span>(dllexport) <span class="tk-kw">int</span> <span class="tk-f">swmod_any_game</span>() { <span class="tk-kw">return</span> <span class="tk-n">1</span>; }
 
 
 <span class="tk-c">// Exports that swinject uses for detection and unloading, and the DLL</span>

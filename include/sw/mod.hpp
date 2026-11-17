@@ -30,6 +30,11 @@ bool running();
 bool sleep(unsigned ms);
 
 
+// true when the game is exactly the build the SDK was made for. Only a mod with SW_MOD_ANY_GAME() ever sees false -
+// then rt() is not attached and you must not use any address from the headers.
+bool mapped();
+
+
 // The runtime of the game (already connected and checked).
 Runtime& rt();
 
@@ -66,6 +71,13 @@ unsigned long shutdown();
 #define SW_EXPORT_PLAIN(name, bytes)
 
 #endif
+
+
+// Put SW_MOD_ANY_GAME() under SW_MOD("...") if your mod needs no game address (it finds what it changes by itself).
+// Then it keeps running after a game update, before the SDK is updated: swinject loads it on an unknown build (and
+// only mods marked like this) once it has switched the network version of that build. Check sw::mod::mapped().
+#define SW_MOD_ANY_GAME() \
+    extern "C" __declspec(dllexport) int swmod_any_game() { return 1; }
 
 
 // Exports that swinject uses for detection and unloading, and the DLL
