@@ -9,6 +9,7 @@ players/installing-mods/
 players/removing-mods/
 players/updating-mods/
 players/configuration/
+players/shaders-and-clouds/
 players/dependencies/
 players/compatibility/
 players/profiles/
@@ -50,6 +51,7 @@ reference/recipes/
 reference/generated/
 reference/h-audio/
 reference/h-camera/
+reference/h-clouds/
 reference/h-console/
 reference/h-discord/
 reference/h-events/
@@ -70,6 +72,7 @@ reference/h-render/
 reference/h-runtime/
 reference/h-settings/
 reference/h-shader/
+reference/h-shader-build/
 reference/h-signature/
 reference/h-start-tiles/
 reference/h-textures/
