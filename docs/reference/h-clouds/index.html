@@ -67,7 +67,7 @@
     <span class="tk-kw">std</span>::vector&lt;Area&gt; never_in;   <span class="tk-c">// clouds never appear inside these areas</span>
     <span class="tk-kw">float</span> min_height = <span class="tk-n">0</span>;         <span class="tk-c">// metres; both 0 = the game's 300 .. 1000</span>
     <span class="tk-kw">float</span> max_height = <span class="tk-n">0</span>;
-    <span class="tk-kw">int</span> max_clouds = -<span class="tk-n">1</span>;          <span class="tk-c">// -1 = the game's number</span>
+    <span class="tk-kw">int</span> max_clouds = -<span class="tk-n">1</span>;          <span class="tk-c">// -1 = the game's number (the game changes it with the weather)</span>
     <span class="tk-kw">float</span> field_radius = <span class="tk-n">0</span>;       <span class="tk-c">// 0 = the game's 3000 m (the distance from the camera at which clouds live)</span>
     <span class="tk-kw">int</span> mesh = -<span class="tk-n">1</span>;                <span class="tk-c">// -1 = a random shape as the game does; 0..6 = always meshes/cloud_0&lt;mesh+2&gt; (the game loads</span>
                                   <span class="tk-c">// cloud_02 .. cloud_08 in this order; info().meshes says how many there are)</span>
@@ -80,8 +80,8 @@
 <span class="tk-kw">void</span> <span class="tk-f">set_rules</span>(<span class="tk-kw">const</span> Rules&amp; rules);
 Rules <span class="tk-f">rules</span>();
 
-<span class="tk-c">// The next cloud that spawns appears at x / y / z (y = height). Up to 64 wait in a queue; if the field is full, its oldest cloud</span>
-<span class="tk-c">// ends to make room. Must be within the field radius of the camera, else the game takes the cloud away again at once.</span>
+<span class="tk-c">// The next cloud that spawns appears at x / y / z (y = height), in every cloud field that runs. Up to 64 wait; if a field is full,</span>
+<span class="tk-c">// its oldest cloud ends to make room. Must be within the field radius of the camera, else the game takes the cloud away again at once.</span>
 <span class="tk-kw">bool</span> <span class="tk-f">spawn_at</span>(<span class="tk-kw">double</span> x, <span class="tk-kw">double</span> y, <span class="tk-kw">double</span> z);
 <span class="tk-c">// The clouds in the sky follow the rules now: each is moved where the rules allow it, or shrinks away like a cloud at the end of</span>
 <span class="tk-c">// its life (a new cloud of the game starts at size 0 and grows over a tenth of its life, so ending them all would empty the sky).</span>
@@ -89,11 +89,11 @@ Rules <span class="tk-f">rules</span>();
 
 <span class="tk-kw">struct</span> Info {
     <span class="tk-kw">bool</span> active = <span class="tk-kw">false</span>;          <span class="tk-c">// a cloud field was seen (a world is loaded)</span>
-    <span class="tk-kw">bool</span> drawn = <span class="tk-kw">false</span>;           <span class="tk-c">// the numbers are of the field the renderer draws (else of the logic world's)</span>
-    <span class="tk-kw">int</span> fields = <span class="tk-n">0</span>;               <span class="tk-c">// cloud fields seen (2 in a game: the logic world's and the drawn one)</span>
+    <span class="tk-kw">bool</span> drawn = <span class="tk-kw">false</span>;           <span class="tk-c">// the numbers are of the field recognised as drawn (else of the field with the most clouds)</span>
+    <span class="tk-kw">int</span> fields = <span class="tk-n">0</span>;               <span class="tk-c">// cloud fields that run (2 in a single-player game)</span>
     <span class="tk-kw">int</span> clouds = <span class="tk-n">0</span>;               <span class="tk-c">// clouds now</span>
     <span class="tk-kw">int</span> max_clouds = <span class="tk-n">0</span>;           <span class="tk-c">// the maximum in use</span>
-    <span class="tk-kw">int</span> game_max_clouds = <span class="tk-n">0</span>;      <span class="tk-c">// the game's own maximum</span>
+    <span class="tk-kw">int</span> game_max_clouds = <span class="tk-n">0</span>;      <span class="tk-c">// the game's own maximum now (it follows the weather)</span>
     <span class="tk-kw">float</span> field_radius = <span class="tk-n">0</span>;
     <span class="tk-kw">double</span> centre[<span class="tk-n">3</span>] = {<span class="tk-n">0</span>, <span class="tk-n">0</span>, <span class="tk-n">0</span>}; <span class="tk-c">// where the field is (the camera)</span>
     <span class="tk-kw">int</span> meshes = <span class="tk-n">0</span>;               <span class="tk-c">// cloud shapes loaded</span>
@@ -113,7 +113,8 @@ Info <span class="tk-f">info</span>();
 <span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaSpawn = <span class="tk-n">0x2c90d0</span>;        <span class="tk-c">// (field, cloud)</span>
 <span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRvaUpdate = <span class="tk-n">0x2c9700</span>;       <span class="tk-c">// (field, &amp;ticks, environment, double centre[3])</span>
 <span class="tk-c">// Two fields run through the update: the logic world's (world + 0x718, called from 0x5ec428) and the one the renderer draws</span>
-<span class="tk-c">// (X + 0xb49a8, called from 0x5f6a00, read by 0x6cd0b0). The drawn one gets environment = field + 0x6a8.</span>
+<span class="tk-c">// (X + 0xb49a8, called from 0x5f6a00, read by 0x6cd0b0). The drawn one gets environment = field + 0x6a8. In a single-player</span>
+<span class="tk-c">// game neither of the two fields that ran had it (REPORT 3.218): the mod does not rely on it.</span>
 <span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kDrawnEnvironment = <span class="tk-n">0x6a8</span>;
 <span class="tk-c">// the field</span>
 <span class="tk-kw">inline</span> <span class="tk-kw">constexpr</span> <span class="tk-kw">std</span>::uint32_t kRing = <span class="tk-n">0x08</span>;                <span class="tk-c">// {data +0x08, capacity u32 +0x10, head u32 +0x14, count u32 +0x18}</span>

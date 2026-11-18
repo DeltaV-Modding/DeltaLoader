@@ -51,7 +51,7 @@ struct Rules {
     std::vector<Area> never_in;   // clouds never appear inside these areas
     float min_height = 0;         // metres; both 0 = the game's 300 .. 1000
     float max_height = 0;
-    int max_clouds = -1;          // -1 = the game's number
+    int max_clouds = -1;          // -1 = the game's number (the game changes it with the weather)
     float field_radius = 0;       // 0 = the game's 3000 m (the distance from the camera at which clouds live)
     int mesh = -1;                // -1 = a random shape as the game does; 0..6 = always meshes/cloud_0<mesh+2> (the game loads
                                   // cloud_02 .. cloud_08 in this order; info().meshes says how many there are)
@@ -64,8 +64,8 @@ bool installed();
 void set_rules(const Rules& rules);
 Rules rules();
 
-// The next cloud that spawns appears at x / y / z (y = height). Up to 64 wait in a queue; if the field is full, its oldest cloud
-// ends to make room. Must be within the field radius of the camera, else the game takes the cloud away again at once.
+// The next cloud that spawns appears at x / y / z (y = height), in every cloud field that runs. Up to 64 wait; if a field is full,
+// its oldest cloud ends to make room. Must be within the field radius of the camera, else the game takes the cloud away again at once.
 bool spawn_at(double x, double y, double z);
 // The clouds in the sky follow the rules now: each is moved where the rules allow it, or shrinks away like a cloud at the end of
 // its life (a new cloud of the game starts at size 0 and grows over a tenth of its life, so ending them all would empty the sky).
@@ -73,11 +73,11 @@ void respawn_all();
 
 struct Info {
     bool active = false;          // a cloud field was seen (a world is loaded)
-    bool drawn = false;           // the numbers are of the field the renderer draws (else of the logic world's)
-    int fields = 0;               // cloud fields seen (2 in a game: the logic world's and the drawn one)
+    bool drawn = false;           // the numbers are of the field recognised as drawn (else of the field with the most clouds)
+    int fields = 0;               // cloud fields that run (2 in a single-player game)
     int clouds = 0;               // clouds now
     int max_clouds = 0;           // the maximum in use
-    int game_max_clouds = 0;      // the game's own maximum
+    int game_max_clouds = 0;      // the game's own maximum now (it follows the weather)
     float field_radius = 0;
     double centre[3] = {0, 0, 0}; // where the field is (the camera)
     int meshes = 0;               // cloud shapes loaded
@@ -97,7 +97,8 @@ inline constexpr std::uint32_t kRvaFieldInit = 0x2c8ce0;    // (field, loader, l
 inline constexpr std::uint32_t kRvaSpawn = 0x2c90d0;        // (field, cloud)
 inline constexpr std::uint32_t kRvaUpdate = 0x2c9700;       // (field, &ticks, environment, double centre[3])
 // Two fields run through the update: the logic world's (world + 0x718, called from 0x5ec428) and the one the renderer draws
-// (X + 0xb49a8, called from 0x5f6a00, read by 0x6cd0b0). The drawn one gets environment = field + 0x6a8.
+// (X + 0xb49a8, called from 0x5f6a00, read by 0x6cd0b0). The drawn one gets environment = field + 0x6a8. In a single-player
+// game neither of the two fields that ran had it (REPORT 3.218): the mod does not rely on it.
 inline constexpr std::uint32_t kDrawnEnvironment = 0x6a8;
 // the field
 inline constexpr std::uint32_t kRing = 0x08;                // {data +0x08, capacity u32 +0x10, head u32 +0x14, count u32 +0x18}

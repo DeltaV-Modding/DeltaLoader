@@ -80,25 +80,36 @@ bool choose_place(const Rules& rules, double cx, double cz, double radius, doubl
 
 namespace {
 
-// The game updates two cloud fields with the same function (REPORT 3.214a): the logic world's and the one the renderer draws.
-// Each field keeps its own state; the rules apply to both, a cloud of spawn_at() goes into the drawn one.
+// More than one cloud field runs through the update (REPORT 3.215, 3.217a): each keeps its own state, the rules apply to all of them, and a
+// cloud of spawn_at() goes into every field (the one that is drawn shows it). The game sets the maximum of a field itself, again and again
+// (it follows the weather): the mod writes it only while the rules give a number, and gives the game's value back when they stop.
+constexpr std::uint32_t kNone = 0xffffffffu;
+
 struct Field {
-    int game_max = -1;          // the game's own values, read before the first write
-    float game_radius = -1;
+    std::uint32_t game_max = 0;        // the game's maximum as last seen (not the mod's)
+    float game_radius = 0;
+    std::uint32_t written_max = kNone; // what the mod wrote, kNone = nothing
+    float written_radius = -1;
     bool drawn = false;
+    std::uint32_t count = 0;
     unsigned long long respawn_done = 0;   // the respawn_all() request this field carried out
+    unsigned long long spawn_done = 0;     // the last spawn_at() cloud this field placed (or skipped)
     unsigned long long last_seen = 0;      // GetTickCount64 of its last update
     std::unordered_map<std::uintptr_t, std::uint32_t> seen;   // cloud address -> the bits of its lifetime: a cloud already handled
 };
 
+struct Spawn {
+    unsigned long long number;
+    double pos[3];
+};
+
 std::mutex g_mutex;
 Rules g_rules;
-std::deque<std::array<double, 3>> g_queue;
+std::deque<Spawn> g_spawns;          // the last 64 spawn_at() clouds; each field takes those with a number above its spawn_done
+unsigned long long g_spawn_number = 0;
 std::unordered_map<std::uintptr_t, Field> g_fields;
 unsigned long long g_respawn = 0;   // number of respawn_all() requests
 std::atomic<bool> g_installed{false};
-std::atomic<std::uintptr_t> g_field_drawn{0}, g_field_any{0};
-std::atomic<unsigned long long> g_drawn_seen{0};
 std::atomic<unsigned long long> g_spawned{0}, g_moved{0}, g_removed{0}, g_placed{0};
 
 std::uint64_t g_rng = 0x9e3779b97f4a7c15ull;
@@ -158,22 +169,30 @@ void set_position(std::uintptr_t cloud, double x, double y, double z) {
     }
 }
 
+// the next spawn_at() cloud this field has not placed yet, or nullptr (g_mutex held)
+const Spawn* pending_spawn(const Field& f) {
+    for (const Spawn& s : g_spawns)
+        if (s.number > f.spawn_done) return &s;
+    return nullptr;
+}
+
 // The rules for one cloud: move it, or take it away (g_mutex held). A cloud the game just made (size 0) is ended at once; a cloud
 // already in the sky (existing = true, after respawn_all) keeps its size and shrinks away like a cloud at the end of its life.
-void adopt(std::uintptr_t field, std::uintptr_t cloud, bool takes_queue, bool existing = false) {
+void adopt(Field& f, std::uintptr_t field, std::uintptr_t cloud, bool existing = false) {
     if (!existing) g_spawned.fetch_add(1);
     double pos[3] = {};
     double centre[3] = {};
     float radius = 0;
     if (!get(cloud + kCloudPos, pos) || !get(field + kCentre, centre) || !get(field + kRadius, radius)) return;
-    if (!existing && takes_queue && !g_queue.empty()) {
-        const auto p = g_queue.front();
-        g_queue.pop_front();
-        set_position(cloud, p[0], p[1], p[2]);
-        float life = 0;   // half its size at once (a new cloud grows from 0 over a tenth of its life)
-        if (get(cloud + kCloudLife, life)) put(cloud + kCloudAge, 0.05f * life);
-        g_placed.fetch_add(1);
-        return;
+    if (!existing) {
+        if (const Spawn* s = pending_spawn(f)) {
+            f.spawn_done = s->number;
+            set_position(cloud, s->pos[0], s->pos[1], s->pos[2]);
+            float life = 0;   // half its size at once (a new cloud grows from 0 over a tenth of its life)
+            if (get(cloud + kCloudLife, life)) put(cloud + kCloudAge, 0.05f * life);
+            if (f.drawn || f.count > 0) g_placed.fetch_add(1);
+            return;
+        }
     }
     const Rules& r = g_rules;
     bool changed = false;
@@ -213,40 +232,48 @@ void adopt(std::uintptr_t field, std::uintptr_t cloud, bool takes_queue, bool ex
 void on_update(void* self, void*) {
     const std::uintptr_t field = reinterpret_cast<std::uintptr_t>(self);
     const std::uintptr_t environment = static_cast<std::uintptr_t>(sw::Hook::arg(2));
-    const bool drawn = environment == field + kDrawnEnvironment;
     const unsigned long long now_ms = GetTickCount64();
-    g_field_any.store(field);
-    if (drawn) {
-        g_field_drawn.store(field);
-        g_drawn_seen.store(now_ms);
-    }
     std::lock_guard<std::mutex> lock(g_mutex);
     std::uint32_t max = 0, count = 0;
     float radius = 0;
     if (!get(field + kMaxClouds, max) || !get(field + kRadius, radius) || !get(field + kRing + 0x10, count)) return;
     auto found = g_fields.find(field);
-    if (found == g_fields.end() || now_ms - found->second.last_seen > 5000) {   // a new field (another world): its own values are the game's
+    if (found == g_fields.end() || now_ms - found->second.last_seen > 5000) {   // a new field (another world)
         if (g_fields.size() > 16) {
             for (auto it = g_fields.begin(); it != g_fields.end();)
                 it = now_ms - it->second.last_seen > 5000 ? g_fields.erase(it) : std::next(it);
         }
         Field f;
-        f.game_max = static_cast<int>(max);
-        f.game_radius = radius;
         f.respawn_done = g_respawn;
+        f.spawn_done = g_spawn_number;   // spawn_at() clouds asked for before this field ran are not its
         found = g_fields.insert_or_assign(field, std::move(f)).first;
     }
     Field& f = found->second;
     f.last_seen = now_ms;
-    f.drawn = drawn;
-    // the drawn field places the clouds of spawn_at(); the logic field only when no drawn one runs (a server)
-    const bool takes_queue = drawn || now_ms - g_drawn_seen.load() > 2000;
+    f.drawn = environment == field + kDrawnEnvironment;
+    f.count = count;
 
-    const std::uint32_t want_max =
-        g_rules.max_clouds >= 0 ? static_cast<std::uint32_t>(std::min(g_rules.max_clouds, 2000)) : static_cast<std::uint32_t>(f.game_max);
-    const float want_radius = g_rules.field_radius > 0 ? g_rules.field_radius : f.game_radius;
-    if (want_max != max) put(field + kMaxClouds, want_max);
-    if (want_radius != radius) put(field + kRadius, want_radius);
+    // the maximum: the game's value is what the field holds when it is not the mod's own
+    if (max != f.written_max) f.game_max = max;
+    if (g_rules.max_clouds >= 0) {
+        const std::uint32_t want = static_cast<std::uint32_t>(std::min(g_rules.max_clouds, 2000));
+        if (max != want) put(field + kMaxClouds, want);
+        f.written_max = want;
+        max = want;
+    } else if (f.written_max != kNone) {   // the rules stopped: the game's value again
+        if (max == f.written_max) put(field + kMaxClouds, f.game_max);
+        max = f.game_max;
+        f.written_max = kNone;
+    }
+    // the radius, the same way
+    if (radius != f.written_radius) f.game_radius = radius;
+    if (g_rules.field_radius > 0) {
+        if (radius != g_rules.field_radius) put(field + kRadius, g_rules.field_radius);
+        f.written_radius = g_rules.field_radius;
+    } else if (f.written_radius >= 0) {
+        if (radius == f.written_radius && f.game_radius > 0) put(field + kRadius, f.game_radius);
+        f.written_radius = -1;
+    }
 
     // the clouds made since the last tick of this field
     std::unordered_map<std::uintptr_t, std::uint32_t> now;
@@ -257,7 +284,7 @@ void on_update(void* self, void*) {
         if (!c || !get(c + kCloudLife, life)) continue;
         now[c] = life;
         auto it = f.seen.find(c);
-        if (it == f.seen.end() || it->second != life) adopt(field, c, takes_queue);
+        if (it == f.seen.end() || it->second != life) adopt(f, field, c);
     }
     f.seen.swap(now);
 
@@ -266,8 +293,8 @@ void on_update(void* self, void*) {
         // empty for a long time - the game's new clouds start at size 0 and grow over a tenth of their life (REPORT 3.216).
         f.respawn_done = g_respawn;
         for (std::uint32_t i = 0; i < count && i < 4096; ++i)
-            if (const std::uintptr_t c = cloud_at(field, i)) adopt(field, c, false, true);
-    } else if (takes_queue && !g_queue.empty() && count >= want_max && count > 0) {
+            if (const std::uintptr_t c = cloud_at(field, i)) adopt(f, field, c, true);
+    } else if (pending_spawn(f) && count >= max && count > 0) {
         // make room for a cloud of spawn_at(): the one nearest to the end of its life goes
         std::uintptr_t oldest = 0;
         float best = -1;
@@ -281,6 +308,8 @@ void on_update(void* self, void*) {
             }
         }
         if (oldest) end_cloud(oldest);
+    } else if (const Spawn* s = pending_spawn(f); s && max == 0) {
+        f.spawn_done = s->number;   // a field that makes no clouds (maximum 0) cannot place it
     }
 }
 
@@ -312,12 +341,6 @@ bool install(std::string& error) {
         error = "the cloud update 0x2c9700 is not the one this was made for";
         return false;
     }
-    // the drawn field: field = X + 0xb49a8, environment = X + 0xb5050 (= field + 0x6a8) at its update call; the renderer reads it
-    if (!bytes_at(0x5f69e5, {0x4c, 0x8d, 0xbe, 0xa8, 0x49, 0x0b, 0x00, 0x4c, 0x8d, 0x86, 0x50, 0x50, 0x0b, 0x00}) ||
-        !bytes_at(0x6cec8e, {0x41, 0x39, 0x9f, 0xc0, 0x49, 0x0b, 0x00})) {
-        error = "the drawn cloud field is not where it was";
-        return false;
-    }
     if (rt.hook_rva(kRvaUpdate, &on_update, nullptr, error) != sw::HookStatus::ok) return false;
     g_rng ^= static_cast<std::uint64_t>(GetTickCount64());
     g_installed.store(true);
@@ -333,11 +356,14 @@ void uninstall() {
         const unsigned long long now_ms = GetTickCount64();
         for (const auto& [field, f] : g_fields) {   // only fields that still run (a field of an unloaded world is gone)
             if (now_ms - f.last_seen > 2000 || !rt.readable(reinterpret_cast<const void*>(field), kSeed + 4)) continue;
-            if (f.game_max >= 0) put(field + kMaxClouds, static_cast<std::uint32_t>(f.game_max));
-            if (f.game_radius > 0) put(field + kRadius, f.game_radius);
+            std::uint32_t max = 0;
+            float radius = 0;
+            if (f.written_max != kNone && get(field + kMaxClouds, max) && max == f.written_max) put(field + kMaxClouds, f.game_max);
+            if (f.written_radius >= 0 && f.game_radius > 0 && get(field + kRadius, radius) && radius == f.written_radius)
+                put(field + kRadius, f.game_radius);
         }
         g_fields.clear();
-        g_queue.clear();
+        g_spawns.clear();
     }
     g_installed.store(false);
 }
@@ -357,8 +383,8 @@ Rules rules() {
 bool spawn_at(double x, double y, double z) {
     if (!g_installed.load() || !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) return false;
     std::lock_guard<std::mutex> lock(g_mutex);
-    if (g_queue.size() >= 64) return false;
-    g_queue.push_back({x, y, z});
+    if (g_spawns.size() >= 64) g_spawns.pop_front();
+    g_spawns.push_back({++g_spawn_number, {x, y, z}});
     return true;
 }
 
@@ -373,12 +399,23 @@ Info info() {
     out.moved = g_moved.load();
     out.removed = g_removed.load();
     out.placed = g_placed.load();
-    const bool drawn_runs = GetTickCount64() - g_drawn_seen.load() <= 2000;
-    const std::uintptr_t field = drawn_runs ? g_field_drawn.load() : g_field_any.load();
     auto& rt = sw::Runtime::get();
-    if (!field || !rt.readable(reinterpret_cast<const void*>(field), kSeed + 4)) return out;
+    std::lock_guard<std::mutex> lock(g_mutex);
+    // the field that is drawn if it is known, else the one with the most clouds (the one you see)
+    const unsigned long long now_ms = GetTickCount64();
+    std::uintptr_t field = 0;
+    const Field* best = nullptr;
+    for (const auto& [address, f] : g_fields) {
+        if (now_ms - f.last_seen > 2000) continue;
+        ++out.fields;
+        if (!best || (f.drawn && !best->drawn) || (f.drawn == best->drawn && f.count > best->count)) {
+            best = &f;
+            field = address;
+        }
+    }
+    if (!best || !rt.readable(reinterpret_cast<const void*>(field), kSeed + 4)) return out;
     out.active = true;
-    out.drawn = drawn_runs;
+    out.drawn = best->drawn;
     std::uint32_t count = 0, max = 0;
     std::uint16_t meshes = 0;
     get(field + kRing + 0x10, count);
@@ -389,10 +426,7 @@ Info info() {
     out.clouds = static_cast<int>(count);
     out.max_clouds = static_cast<int>(max);
     out.meshes = meshes;
-    std::lock_guard<std::mutex> lock(g_mutex);
-    auto it = g_fields.find(field);
-    out.game_max_clouds = it != g_fields.end() ? it->second.game_max : -1;
-    out.fields = static_cast<int>(g_fields.size());
+    out.game_max_clouds = static_cast<int>(best->game_max);
     return out;
 }
 

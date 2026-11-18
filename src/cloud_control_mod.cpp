@@ -208,7 +208,7 @@ void sw_mod_start() {
             if (info.active)
                 sw::mod::log("cloud_control: %d of %d clouds (game: %d), radius %.0f m, %d field(s)%s; since start %llu made, %llu moved, %llu taken away, %llu placed.",
                              info.clouds, info.max_clouds, info.game_max_clouds, info.field_radius, info.fields,
-                             info.drawn ? "" : ", NOT the drawn one", info.spawned, info.moved, info.removed, info.placed);
+                             info.drawn ? ", the drawn one" : "", info.spawned, info.moved, info.removed, info.placed);
         }
     }
 }
