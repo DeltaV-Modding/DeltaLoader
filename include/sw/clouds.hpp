@@ -67,7 +67,8 @@ Rules rules();
 // The next cloud that spawns appears at x / y / z (y = height). Up to 64 wait in a queue; if the field is full, its oldest cloud
 // ends to make room. Must be within the field radius of the camera, else the game takes the cloud away again at once.
 bool spawn_at(double x, double y, double z);
-// Every cloud ends now; the field fills again (a few ticks) with clouds that follow the rules.
+// The clouds in the sky follow the rules now: each is moved where the rules allow it, or shrinks away like a cloud at the end of
+// its life (a new cloud of the game starts at size 0 and grows over a tenth of its life, so ending them all would empty the sky).
 void respawn_all();
 
 struct Info {

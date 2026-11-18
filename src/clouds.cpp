@@ -136,6 +136,17 @@ void end_cloud(std::uintptr_t cloud) {
     if (get(cloud + kCloudLife, life)) put(cloud + kCloudAge, life + 1.0f);
 }
 
+// A cloud shrinks away the way the game ends one: from 0.9 of its life it shrinks to 0 (the update, 0x2c98e1).
+void fade_cloud(std::uintptr_t cloud) {
+    float life = 0, age = 0;
+    if (!get(cloud + kCloudLife, life) || !get(cloud + kCloudAge, age) || life <= 0) return;
+    if (age < 0.1f * life) {   // still growing: shrink from the size it has now
+        put(cloud + kCloudAge, life - age);
+    } else if (age < 0.9f * life) {
+        put(cloud + kCloudAge, 0.9f * life);
+    }
+}
+
 void set_position(std::uintptr_t cloud, double x, double y, double z) {
     put(cloud + kCloudPos, x);
     put(cloud + kCloudPos + 8, y);
@@ -147,17 +158,20 @@ void set_position(std::uintptr_t cloud, double x, double y, double z) {
     }
 }
 
-// a cloud the game just made: the rules move it, or take it away (g_mutex held)
-void adopt(std::uintptr_t field, std::uintptr_t cloud, bool takes_queue) {
-    g_spawned.fetch_add(1);
+// The rules for one cloud: move it, or take it away (g_mutex held). A cloud the game just made (size 0) is ended at once; a cloud
+// already in the sky (existing = true, after respawn_all) keeps its size and shrinks away like a cloud at the end of its life.
+void adopt(std::uintptr_t field, std::uintptr_t cloud, bool takes_queue, bool existing = false) {
+    if (!existing) g_spawned.fetch_add(1);
     double pos[3] = {};
     double centre[3] = {};
     float radius = 0;
     if (!get(cloud + kCloudPos, pos) || !get(field + kCentre, centre) || !get(field + kRadius, radius)) return;
-    if (takes_queue && !g_queue.empty()) {
+    if (!existing && takes_queue && !g_queue.empty()) {
         const auto p = g_queue.front();
         g_queue.pop_front();
         set_position(cloud, p[0], p[1], p[2]);
+        float life = 0;   // half its size at once (a new cloud grows from 0 over a tenth of its life)
+        if (get(cloud + kCloudLife, life)) put(cloud + kCloudAge, 0.05f * life);
         g_placed.fetch_add(1);
         return;
     }
@@ -170,8 +184,12 @@ void adopt(std::uintptr_t field, std::uintptr_t cloud, bool takes_queue) {
     if (!r.only_in.empty() || !r.never_in.empty()) {
         double x = pos[0], z = pos[2];
         if (!choose_place(r, centre[0], centre[2], radius, x, z, &next_random, nullptr)) {
-            set_position(cloud, pos[0], -10000.0, pos[2]);   // under the world for the rest of this tick
-            end_cloud(cloud);
+            if (existing) {
+                fade_cloud(cloud);
+            } else {
+                set_position(cloud, pos[0], -10000.0, pos[2]);   // under the world for the rest of this tick
+                end_cloud(cloud);
+            }
             g_removed.fetch_add(1);
             return;
         }
@@ -244,9 +262,11 @@ void on_update(void* self, void*) {
     f.seen.swap(now);
 
     if (f.respawn_done != g_respawn) {
+        // The clouds in the sky follow the new rules where they are: moved, or shrinking away. Ending them all would leave the sky
+        // empty for a long time - the game's new clouds start at size 0 and grow over a tenth of their life (REPORT 3.216).
         f.respawn_done = g_respawn;
         for (std::uint32_t i = 0; i < count && i < 4096; ++i)
-            if (const std::uintptr_t c = cloud_at(field, i)) end_cloud(c);
+            if (const std::uintptr_t c = cloud_at(field, i)) adopt(field, c, false, true);
     } else if (takes_queue && !g_queue.empty() && count >= want_max && count > 0) {
         // make room for a cloud of spawn_at(): the one nearest to the end of its life goes
         std::uintptr_t oldest = 0;
