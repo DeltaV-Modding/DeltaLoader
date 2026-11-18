@@ -174,8 +174,12 @@ std::atomic<bool> g_installed{false};
 std::atomic<int> g_compiled{0};
 std::atomic<unsigned long long> g_rebuilds{0};
 std::atomic<int> g_last_programs{0};
-std::atomic<bool> g_rebuild_pending{false};
-std::string g_rebuild_filter;   // under g_mutex
+// A rebuild request has a number. The game has several resource managers (one of the application, one per application state, one per
+// scene - 21 call sites of 0x1b1b60); each carries out a request at its own next pass (REPORT 3.213a).
+unsigned long long g_request = 0;                                  // under g_mutex
+std::string g_rebuild_filter;                                      // under g_mutex
+std::unordered_map<std::uintptr_t, unsigned long long> g_managers; // manager -> the last request it carried out (under g_mutex)
+std::atomic<unsigned long long> g_request_seen{0};
 
 ShaderSourceFn g_orig_source = nullptr;
 CompileShaderFn g_orig_compile = nullptr;
@@ -301,16 +305,21 @@ void add_count(std::uintptr_t list, int delta) {
 
 // 0x1b1b60(manager, loader): before the game builds the waiting resources, put the chosen programs back into the waiting list
 void on_resource_pass(void* manager, void*) {
-    if (!g_rebuild_pending.load()) return;
+    const std::uintptr_t rm = reinterpret_cast<std::uintptr_t>(manager);
     std::string filter;
     {
         std::lock_guard<std::mutex> lock(g_mutex);
-        if (!g_rebuild_pending.exchange(false)) return;
+        auto it = g_managers.find(rm);
+        if (it == g_managers.end()) {   // a manager seen for the first time builds its programs with the settings of now
+            if (g_managers.size() > 256) g_managers.clear();
+            g_managers[rm] = g_request;
+            return;
+        }
+        if (it->second == g_request) return;
+        it->second = g_request;
         filter = g_rebuild_filter;
-        g_failures.clear();
     }
     auto& rt = sw::Runtime::get();
-    const std::uintptr_t rm = reinterpret_cast<std::uintptr_t>(manager);
     const std::uintptr_t built = rm + kProgramsBuilt, waiting = rm + kProgramsWaiting;
     const std::uintptr_t vtable = address_of(kRvaProgramVtable);
     const std::uintptr_t delete_gl = address_of(kRvaProgramDeleteGl);
@@ -359,8 +368,8 @@ void on_resource_pass(void* manager, void*) {
         write_ptr(res + kResList, waiting);
         add_count(waiting, 1);
     }
-    g_last_programs.store(static_cast<int>(chosen.size()));
-    g_rebuilds.fetch_add(1);
+    g_last_programs.fetch_add(static_cast<int>(chosen.size()));
+    g_rebuilds.store(g_request_seen.load());
 }
 
 bool swap_slot(std::uintptr_t slot, void* wrapper, void** original) {
@@ -458,6 +467,10 @@ void uninstall() {
         rt.unhook(address_of(kRvaResourcePass), &on_resource_pass, nullptr, ignore);
         rt.unhook(address_of(kRvaStageSource), &on_stage_source, nullptr, ignore);
     }
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+        g_managers.clear();
+    }
     g_installed.store(false);
 }
 
@@ -514,7 +527,9 @@ bool rebuild(const std::string& filter) {
     if (!g_installed.load()) return false;
     std::lock_guard<std::mutex> lock(g_mutex);
     g_rebuild_filter = filter;
-    g_rebuild_pending.store(true);
+    g_failures.clear();
+    g_last_programs.store(0);
+    g_request_seen.store(++g_request);
     return true;
 }
 

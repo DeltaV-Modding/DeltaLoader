@@ -72,6 +72,8 @@ void respawn_all();
 
 struct Info {
     bool active = false;          // a cloud field was seen (a world is loaded)
+    bool drawn = false;           // the numbers are of the field the renderer draws (else of the logic world's)
+    int fields = 0;               // cloud fields seen (2 in a game: the logic world's and the drawn one)
     int clouds = 0;               // clouds now
     int max_clouds = 0;           // the maximum in use
     int game_max_clouds = 0;      // the game's own maximum
@@ -93,6 +95,9 @@ bool choose_place(const Rules& rules, double cx, double cz, double radius, doubl
 inline constexpr std::uint32_t kRvaFieldInit = 0x2c8ce0;    // (field, loader, library, seed): loads the meshes, spawns the first clouds
 inline constexpr std::uint32_t kRvaSpawn = 0x2c90d0;        // (field, cloud)
 inline constexpr std::uint32_t kRvaUpdate = 0x2c9700;       // (field, &ticks, environment, double centre[3])
+// Two fields run through the update: the logic world's (world + 0x718, called from 0x5ec428) and the one the renderer draws
+// (X + 0xb49a8, called from 0x5f6a00, read by 0x6cd0b0). The drawn one gets environment = field + 0x6a8.
+inline constexpr std::uint32_t kDrawnEnvironment = 0x6a8;
 // the field
 inline constexpr std::uint32_t kRing = 0x08;                // {data +0x08, capacity u32 +0x10, head u32 +0x14, count u32 +0x18}
 inline constexpr std::uint32_t kMeshCount = 0x30;           // u16
