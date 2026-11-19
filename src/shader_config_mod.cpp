@@ -1,5 +1,6 @@
 // shader_config - your own #define macros and a newer GLSL version for the game's shaders, applied while the game runs
-// (sw/shader_build.hpp, REPORT 3.213), and post-processing effects over the finished picture (sw/postfx.hpp, REPORT 3.225).
+// (sw/shader_build.hpp, REPORT 3.213), and post-processing effects (sw/postfx.hpp, REPORT 3.225, 3.226): before the tonemap on the HDR
+// scene with depth and normals ("#pragma stage hdr", no HUD), or over the finished picture.
 //
 // For players and shader authors (e.g. the settings block of a shader pack): edit <game>\mods\shader_config\shader_config.ini,
 // save it, and the shaders are rebuilt within a second - no restart, no reloading the save. Ctrl+F8 rebuilds by hand.
@@ -66,8 +67,8 @@ const char kDefaultIni[] =
     "; Changes here apply at once and do not rebuild the shaders. Ctrl+F7 in the game switches all effects off and on.\r\n"
     "; 1 = on, 0 = no effects at all\r\n"
     "enabled = 1\r\n"
-    "; built-in effects, run in the order you list them:\r\n"
-    ";   vignette, sharpen, saturation, contrast, tint, grain, chromatic_aberration\r\n"
+    "; built-in effects, run in the order you list them. Before the tonemap (HDR, no HUD): exposure, bloom, sun_rays.\r\n"
+    "; Over the final picture: sharpen, cas, fxaa, saturation, contrast, color_grade, tint, vignette, grain, chromatic_aberration\r\n"
     "; e.g. presets = sharpen, saturation, vignette\r\n"
     "presets =\r\n"
     "; Your own effects: every *.glsl file in the folder postfx next to this file (see postfx\\README.txt there).\r\n"
@@ -88,7 +89,25 @@ const char kDefaultIni[] =
     ";[postfx:grain]\r\n"
     ";u_amount = 0.04\r\n"
     ";[postfx:chromatic_aberration]\r\n"
-    ";u_amount = 1.5\r\n";
+    ";u_amount = 1.5\r\n"
+    ";[postfx:cas]\r\n"
+    ";u_amount = 0.5\r\n"
+    ";[postfx:fxaa]\r\n"
+    ";u_amount = 0.75\r\n"
+    ";[postfx:color_grade]\r\n"
+    ";u_lift = 0 0 0\r\n"
+    ";u_gamma = 1 1 1\r\n"
+    ";u_gain = 1 1 1\r\n"
+    ";u_temperature = 0\r\n"
+    ";[postfx:exposure]\r\n"
+    ";u_exposure = 1.0\r\n"
+    ";[postfx:bloom]\r\n"
+    ";u_threshold = 1.0\r\n"
+    ";u_amount = 0.15\r\n"
+    ";u_radius = 6\r\n"
+    ";[postfx:sun_rays]\r\n"
+    ";u_amount = 0.35\r\n"
+    ";u_decay = 0.96\r\n";
 
 const char kPostfxReadme[] =
     "Your own post-processing effects for shader_config (sw/postfx.hpp).\r\n"
@@ -105,6 +124,11 @@ const char kPostfxReadme[] =
     "        return vec4(mix(color.rgb, vec3(grey), u_amount), 1.0);\r\n"
     "    }\r\n"
     "\r\n"
+    "TWO STAGES. Without a line it runs over the finished picture (after tonemap and AA, with the HUD).\r\n"
+    "With the line  #pragma stage hdr  it runs BEFORE the tonemap, after all geometry is drawn (ocean, glass and lights\r\n"
+    "included), on the HDR scene colour, without the HUD - with depth and normals (see below).\r\n"
+    "Examples to copy are in the folder examples (they are not run from there).\r\n"
+    "\r\n"
     "Ready to use in every effect (do not declare them again):\r\n"
     "    u_scene        sampler2D  the picture so far\r\n"
     "    u_resolution   vec2       its size in pixels\r\n"
@@ -113,10 +137,79 @@ const char kPostfxReadme[] =
     "    v_uv           vec2       0..1, (0,0) at the lower left\r\n"
     "    scene(uv)      vec4       the picture at uv\r\n"
     "    texel()        vec2       one pixel in uv units\r\n"
+    "Only with #pragma stage hdr:\r\n"
+    "    u_depth        sampler2D  depth of the scene incl. ocean and glass (the game's logarithmic depth)\r\n"
+    "    u_gdepth       sampler2D  depth of the G-buffer (opaque geometry only), also as gdepth\r\n"
+    "    u_normal       sampler2D  the G-buffer normals (gnormal), u_albedo (gcolor), u_velocity (gvelocity)\r\n"
+    "    #include \"depth_utils.glslh\"  gives decode_depth_linear() of the game (any file of rom\\graphics\\shaders works)\r\n"
+    "    Any uniform of the game's light shader is filled in by name, e.g.:\r\n"
+    "        uniform vec3 sun_light_direction;   (points AWAY from the sun)\r\n"
+    "        uniform mat4 mat_view_proj_inverse;  uniform vec3 sun_light_color;  uniform float camera_far;\r\n"
     "\r\n"
     "A first line \"#version 460\" uses a newer GLSL. A file with its own \"void main()\" is used as it is.\r\n"
     "Uniforms of a file are set in shader_config.ini, section [postfx:<file name without .glsl>].\r\n"
-    "The picture is the one after the game's tonemap and anti-aliasing, 8 bits per channel, with the HUD on it.\r\n";
+    "If the hdr stage is not available on this game version, the log says so; hdr effects then do nothing.\r\n";
+
+// Examples written to postfx\examples once (not run from there: copy one up into postfx to use it).
+const char kExampleSunRays[] =
+    "// Light shafts from the sun, drawn BEFORE the tonemap, after the ocean, glass and lights are drawn.\r\n"
+    "// Copy this file into the postfx folder. Settings: [postfx:sun_rays] in shader_config.ini.\r\n"
+    "#pragma stage hdr\r\n"
+    "#include \"depth_utils.glslh\"\r\n"
+    "uniform float u_amount = 0.35;\r\n"
+    "uniform float u_decay = 0.96;\r\n"
+    "uniform int u_samples = 48;\r\n"
+    "uniform vec3 sun_light_direction;    // from the game's light shader; points away from the sun\r\n"
+    "uniform vec3 sun_light_color;\r\n"
+    "uniform mat4 mat_view_proj_inverse;\r\n"
+    "float sky(vec2 uv) { return decode_depth_linear(texture(u_depth, uv).r) > 20000.0 ? 1.0 : 0.0; }\r\n"
+    "vec4 effect(vec4 color, vec2 uv) {\r\n"
+    "    mat4 vp = inverse(mat_view_proj_inverse);\r\n"
+    "    vec4 cam = mat_view_proj_inverse * vec4(0.0, 0.0, -1.0, 1.0);\r\n"
+    "    vec4 sp = vp * vec4(cam.xyz / cam.w + normalize(-sun_light_direction) * 10000.0, 1.0);\r\n"
+    "    if (sp.w <= 0.0) return color;\r\n"
+    "    vec2 sun = sp.xy / sp.w * 0.5 + 0.5;\r\n"
+    "    vec2 dstep = (sun - uv) / float(u_samples);\r\n"
+    "    vec2 p = uv;\r\n"
+    "    float w = 1.0, sum = 0.0;\r\n"
+    "    for (int i = 0; i < 128; ++i) {\r\n"
+    "        if (i >= u_samples) break;\r\n"
+    "        p += dstep;\r\n"
+    "        sum += sky(clamp(p, vec2(0.0), vec2(1.0))) * w;\r\n"
+    "        w *= u_decay;\r\n"
+    "    }\r\n"
+    "    float fade = clamp(1.0 - length((sun - 0.5) * vec2(u_resolution.x / u_resolution.y, 1.0)), 0.0, 1.0);\r\n"
+    "    return vec4(color.rgb + sun_light_color * sum / float(u_samples) * u_amount * fade, color.a);\r\n"
+    "}\r\n";
+
+const char kExampleDepthView[] =
+    "// Debug view: the scene depth in metres as grey (0 m black, 2000 m white), the sky red. Shows what an hdr effect sees.\r\n"
+    "// Copy it into postfx, look, delete it again.\r\n"
+    "#pragma stage hdr\r\n"
+    "#include \"depth_utils.glslh\"\r\n"
+    "vec4 effect(vec4 color, vec2 uv) {\r\n"
+    "    float d = decode_depth_linear(texture(u_depth, uv).r);\r\n"
+    "    if (d > 20000.0) return vec4(1.0, 0.0, 0.0, color.a);\r\n"
+    "    return vec4(vec3(clamp(d / 2000.0, 0.0, 1.0)), color.a);\r\n"
+    "}\r\n";
+
+const char kExampleNormalView[] =
+    "// Debug view: the G-buffer normals as colours. Copy it into postfx, look, delete it again.\r\n"
+    "#pragma stage hdr\r\n"
+    "vec4 effect(vec4 color, vec2 uv) {\r\n"
+    "    return vec4(texture(u_normal, uv).xyz * 0.5 + 0.5, color.a);\r\n"
+    "}\r\n";
+
+const char kExampleGrade[] =
+    "// A warm, slightly stronger look over the final picture. Copy it into postfx.\r\n"
+    "uniform float u_amount = 1.0;\r\n"
+    "vec4 effect(vec4 color, vec2 uv) {\r\n"
+    "    vec3 c = color.rgb;\r\n"
+    "    float grey = dot(c, vec3(0.2126, 0.7152, 0.0722));\r\n"
+    "    vec3 graded = mix(vec3(grey), c, 1.15) * vec3(1.04, 1.0, 0.95);\r\n"
+    "    graded = (graded - 0.5) * 1.06 + 0.5;\r\n"
+    "    return vec4(clamp(mix(c, graded, u_amount), 0.0, 1.0), 1.0);\r\n"
+    "}\r\n";
 
 std::wstring game_folder() {
     wchar_t exe[MAX_PATH * 2]{};
@@ -297,10 +390,26 @@ void sw_mod_start() {
             sw::mod::log("shader_config: added the [postfx] section to %ls.", ini.c_str());
         }
     }
-    const std::wstring readme = fx_folder + L"\\README.txt";
-    if (GetFileAttributesW(readme.c_str()) == INVALID_FILE_ATTRIBUTES) {
-        std::ofstream out(readme, std::ios::binary);
+    {   // the README follows the version of the mod (it is ours, not the player's)
+        std::ofstream out(fx_folder + L"\\README.txt", std::ios::binary);
         out << kPostfxReadme;
+    }
+    const std::wstring examples = fx_folder + L"\\examples";
+    if (GetFileAttributesW(examples.c_str()) == INVALID_FILE_ATTRIBUTES) {
+        CreateDirectoryW(examples.c_str(), nullptr);
+        const std::pair<const wchar_t*, const char*> files[] = {{L"sun_rays.glsl", kExampleSunRays},
+                                                                 {L"debug_depth.glsl", kExampleDepthView},
+                                                                 {L"debug_normals.glsl", kExampleNormalView},
+                                                                 {L"warm_grade.glsl", kExampleGrade}};
+        for (const auto& [name, text] : files) {
+            std::ofstream out(examples + L"\\" + name, std::ios::binary);
+            out << text;
+        }
+    }
+    if (fx_on) {
+        const auto st = sw::postfx::status();
+        if (st.hdr_ready) sw::mod::log("shader_config: the hdr stage (before the tonemap, with depth and normals) is ready.");
+        else sw::mod::log("shader_config: the hdr stage is NOT available (%s) - effects with #pragma stage hdr do nothing.", st.hdr_error.c_str());
     }
     if (fx_on)
         sw::mod::log("shader_config: post-processing ready - %d effect file(s) in %ls; Ctrl+F7 switches the effects off and on.",
@@ -353,7 +462,9 @@ void sw_mod_start() {
                 auto it = reported.find(e.name);
                 if (it != reported.end() && it->second == e.error) continue;
                 reported[e.name] = e.error;
-                if (e.error.empty()) sw::mod::log("shader_config: effect %s is running.", e.name.c_str());
+                if (e.error.empty())
+                    sw::mod::log("shader_config: effect %s is running (%s).", e.name.c_str(),
+                                 e.stage == sw::postfx::Stage::hdr ? "before the tonemap" : "over the final picture");
                 else sw::mod::log("shader_config: effect %s has an ERROR (line numbers are those of its file):\n%s", e.name.c_str(), e.error.c_str());
             }
         }
