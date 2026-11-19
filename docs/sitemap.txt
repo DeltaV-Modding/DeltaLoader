@@ -68,6 +68,7 @@ reference/h-network/
 reference/h-obj/
 reference/h-overlay/
 reference/h-physics/
+reference/h-postfx/
 reference/h-render/
 reference/h-runtime/
 reference/h-settings/

@@ -1,20 +1,30 @@
 // shader_config - your own #define macros and a newer GLSL version for the game's shaders, applied while the game runs
-// (sw/shader_build.hpp, REPORT 3.213).
+// (sw/shader_build.hpp, REPORT 3.213), and post-processing effects over the finished picture (sw/postfx.hpp, REPORT 3.225).
 //
 // For players and shader authors (e.g. the settings block of a shader pack): edit <game>\mods\shader_config\shader_config.ini,
 // save it, and the shaders are rebuilt within a second - no restart, no reloading the save. Ctrl+F8 rebuilds by hand.
 // An edited .glsl file in rom\graphics\shaders (or a shader mod laid over it by the launcher) is picked up the same way.
 //
-// The file is made with explanations the first time the mod runs. Not tried in a running game.
+// Post-processing: the built-in presets switched on in the [postfx] section, and every *.glsl file of
+// <game>\mods\shader_config\postfx (a file with `vec4 effect(vec4 color, vec2 uv)`, see postfx\README.txt). Saved files are
+// picked up within a second; Ctrl+F7 switches all effects off and on. Compile errors of the driver go to the log. A change in
+// [postfx] does not rebuild the game's shaders.
+//
+// The file is made with explanations the first time the mod runs; an older file gets the [postfx] section appended once.
+// Not tried in a running game.
 
 #include "sw/mod.hpp"
+#include "sw/postfx.hpp"
 #include "sw/shader_build.hpp"
 
 #include <cctype>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -49,7 +59,64 @@ const char kDefaultIni[] =
     "; Macros for one file only: a section with the file name, e.g.\r\n"
     ";[light.glslf]\r\n"
     ";EXAMPLE_FOG_STEPS = 32\r\n"
-    "; or for one kind of file: [.glslf] (fragment), [.glslv] (vertex), [.glslg] (geometry).\r\n";
+    "; or for one kind of file: [.glslf] (fragment), [.glslv] (vertex), [.glslg] (geometry).\r\n"
+    "\r\n"
+    "[postfx]\r\n"
+    "; Effects over the finished picture (after the game's tonemap and anti-aliasing, with the HUD on it).\r\n"
+    "; Changes here apply at once and do not rebuild the shaders. Ctrl+F7 in the game switches all effects off and on.\r\n"
+    "; 1 = on, 0 = no effects at all\r\n"
+    "enabled = 1\r\n"
+    "; built-in effects, run in the order you list them:\r\n"
+    ";   vignette, sharpen, saturation, contrast, tint, grain, chromatic_aberration\r\n"
+    "; e.g. presets = sharpen, saturation, vignette\r\n"
+    "presets =\r\n"
+    "; Your own effects: every *.glsl file in the folder postfx next to this file (see postfx\\README.txt there).\r\n"
+    "\r\n"
+    "; The settings of an effect: a section [postfx:<name>] with its uniforms (1 to 4 numbers), e.g.\r\n"
+    ";[postfx:vignette]\r\n"
+    ";u_amount = 0.35\r\n"
+    ";u_softness = 0.45\r\n"
+    ";[postfx:sharpen]\r\n"
+    ";u_amount = 0.4\r\n"
+    ";[postfx:saturation]\r\n"
+    ";u_amount = 1.2\r\n"
+    ";[postfx:contrast]\r\n"
+    ";u_contrast = 1.1\r\n"
+    ";u_brightness = 0.0\r\n"
+    ";[postfx:tint]\r\n"
+    ";u_color = 1.0 0.97 0.92\r\n"
+    ";[postfx:grain]\r\n"
+    ";u_amount = 0.04\r\n"
+    ";[postfx:chromatic_aberration]\r\n"
+    ";u_amount = 1.5\r\n";
+
+const char kPostfxReadme[] =
+    "Your own post-processing effects for shader_config (sw/postfx.hpp).\r\n"
+    "\r\n"
+    "Every *.glsl file in this folder is an effect, drawn over the finished picture at the end of every frame.\r\n"
+    "A number at the start of the name is the order: 10_grade.glsl runs before 20_vignette.glsl.\r\n"
+    "Save a file and it is used within a second; delete it and it is gone. Errors are in %TEMP%\\stormworks_mods.log.\r\n"
+    "\r\n"
+    "The shortest effect (copy it into a file named 10_example.glsl):\r\n"
+    "\r\n"
+    "    uniform float u_amount = 0.5;\r\n"
+    "    vec4 effect(vec4 color, vec2 uv) {\r\n"
+    "        float grey = dot(color.rgb, vec3(0.299, 0.587, 0.114));\r\n"
+    "        return vec4(mix(color.rgb, vec3(grey), u_amount), 1.0);\r\n"
+    "    }\r\n"
+    "\r\n"
+    "Ready to use in every effect (do not declare them again):\r\n"
+    "    u_scene        sampler2D  the picture so far\r\n"
+    "    u_resolution   vec2       its size in pixels\r\n"
+    "    u_time         float      seconds since the start\r\n"
+    "    u_frame        int        frame counter\r\n"
+    "    v_uv           vec2       0..1, (0,0) at the lower left\r\n"
+    "    scene(uv)      vec4       the picture at uv\r\n"
+    "    texel()        vec2       one pixel in uv units\r\n"
+    "\r\n"
+    "A first line \"#version 460\" uses a newer GLSL. A file with its own \"void main()\" is used as it is.\r\n"
+    "Uniforms of a file are set in shader_config.ini, section [postfx:<file name without .glsl>].\r\n"
+    "The picture is the one after the game's tonemap and anti-aliasing, 8 bits per channel, with the HUD on it.\r\n";
 
 std::wstring game_folder() {
     wchar_t exe[MAX_PATH * 2]{};
@@ -64,6 +131,20 @@ std::string trim(std::string s) {
     std::size_t i = 0;
     while (i < s.size() && std::isspace(static_cast<unsigned char>(s[i]))) ++i;
     return s.substr(i);
+}
+
+std::vector<std::string> split_list(const std::string& s) {
+    std::vector<std::string> out;
+    std::string cur;
+    for (char c : s + ",") {
+        if (c == ',' || c == ' ' || c == '\t') {
+            if (!cur.empty()) out.push_back(cur);
+            cur.clear();
+        } else {
+            cur += c;
+        }
+    }
+    return out;
 }
 
 // a cheap fingerprint of a file or of every file of a folder: size and time
@@ -85,6 +166,10 @@ struct Config {
     std::string profile;
     bool watch = true;
     int macros = 0;
+    std::string macro_key;   // what the shaders are built with; a change means rebuild
+    bool postfx_on = true;
+    std::vector<std::string> presets;
+    std::map<std::string, std::vector<std::pair<std::string, std::vector<float>>>> uniforms;   // effect -> uniform -> values
     std::vector<std::string> problems;
 };
 
@@ -111,6 +196,19 @@ Config apply(const std::wstring& file) {
         const std::string value = eq == std::string::npos ? std::string() : trim(line.substr(eq + 1));
         char where[64];
         std::snprintf(where, sizeof(where), "line %d", number);
+        if (section == "postfx") {
+            if (key == "enabled") c.postfx_on = value != "0";
+            else if (key == "presets") c.presets = split_list(value);
+            else c.problems.push_back(std::string(where) + ": unknown setting " + key + " in [postfx]");
+            continue;
+        }
+        if (section.rfind("postfx:", 0) == 0) {
+            std::vector<float> v;
+            for (const std::string& part : split_list(value)) v.push_back(static_cast<float>(std::atof(part.c_str())));
+            if (v.empty() || v.size() > 4) c.problems.push_back(std::string(where) + ": " + key + " needs 1 to 4 numbers");
+            else c.uniforms[trim(section.substr(7))].push_back({key, v});
+            continue;
+        }
         if (section == "general") {
             if (key == "glsl_version") c.version = std::atoi(value.c_str());
             else if (key == "profile") c.profile = value == "core" ? "" : value;
@@ -124,6 +222,7 @@ Config apply(const std::wstring& file) {
             continue;
         }
         const bool ok = value == "!" ? sw::shader_build::undefine(key, target) : sw::shader_build::define(key, value, target);
+        c.macro_key += target + "|" + key + "=" + value + "\n";
         if (ok) ++c.macros;
         else c.problems.push_back(std::string(where) + ": \"" + key + "\" is not a macro name (letters, digits, _)");
     }
@@ -132,61 +231,131 @@ Config apply(const std::wstring& file) {
         sw::shader_build::glsl_version(0);
         c.version = 0;
     }
+    c.macro_key += "v" + std::to_string(c.version) + c.profile;
     return c;
 }
 
-bool key_pressed() {
+// the [postfx] part of the ini: presets switched on, every effect on or off, the uniforms
+std::vector<std::string> g_preset_names;   // what this mod added as presets
+void apply_postfx(const Config& c, bool keys_off) {
+    for (const std::string& n : g_preset_names) sw::postfx::remove(n);
+    g_preset_names.clear();
+    int order = 0;
+    for (const std::string& p : c.presets) {
+        if (sw::postfx::add_preset(p, order)) g_preset_names.push_back(p);
+        else sw::mod::log("shader_config: [postfx] presets: there is no preset \"%s\"", p.c_str());
+        order += 10;   // the folder's files without a number come after them (1000)
+    }
+    const bool on = c.postfx_on && !keys_off;
+    for (const auto& e : sw::postfx::effects()) sw::postfx::enable(e.name, on);
+    for (const auto& [effect, list] : c.uniforms)
+        for (const auto& [name, v] : list) sw::postfx::set(effect, name, v.data(), static_cast<int>(v.size()));
+}
+
+bool key_pressed(int vk) {
     DWORD pid = 0;
     GetWindowThreadProcessId(GetForegroundWindow(), &pid);
     if (pid != GetCurrentProcessId()) return false;
-    return (GetAsyncKeyState(VK_F8) & 1) && (GetAsyncKeyState(VK_CONTROL) & 0x8000);
+    return (GetAsyncKeyState(vk) & 1) && (GetAsyncKeyState(VK_CONTROL) & 0x8000);
 }
 
 }  // namespace
 
 void sw_mod_start() {
     std::string error;
-    if (!sw::shader_build::install(error)) {
-        sw::mod::log("shader_config: not active (%s).", error.c_str());
-        return;
-    }
+    const bool build_on = sw::shader_build::install(error);
+    if (!build_on) sw::mod::log("shader_config: macros and GLSL version not active (%s).", error.c_str());
+    std::string fx_error;
+    const bool fx_on = sw::postfx::install(&fx_error);
+    if (!fx_on) sw::mod::log("shader_config: post-processing not active (%s).", fx_error.c_str());
+    if (!build_on && !fx_on) return;
+
     const std::wstring game = game_folder();
     const std::wstring folder = game + L"\\mods\\shader_config";
     const std::wstring ini = folder + L"\\shader_config.ini";
     const std::wstring shaders = game + L"\\rom\\graphics\\shaders";
+    const std::wstring fx_folder = folder + L"\\postfx";
     CreateDirectoryW(folder.c_str(), nullptr);
+    CreateDirectoryW(fx_folder.c_str(), nullptr);
     if (GetFileAttributesW(ini.c_str()) == INVALID_FILE_ATTRIBUTES) {
         std::ofstream out(ini, std::ios::binary);
         out << kDefaultIni;
         sw::mod::log("shader_config: made %ls - edit and save it, the shaders follow.", ini.c_str());
+    } else if (fx_on) {
+        // an ini of an older version: add the [postfx] part once, the rest stays as the player wrote it
+        std::string text;
+        {
+            std::ifstream in(ini, std::ios::binary);
+            std::stringstream s;
+            s << in.rdbuf();
+            text = s.str();
+        }
+        if (text.find("[postfx]") == std::string::npos) {
+            std::ofstream out(ini, std::ios::binary | std::ios::app);
+            const std::string all = kDefaultIni;
+            out << "\r\n" << all.substr(all.find("[postfx]"));
+            sw::mod::log("shader_config: added the [postfx] section to %ls.", ini.c_str());
+        }
     }
+    const std::wstring readme = fx_folder + L"\\README.txt";
+    if (GetFileAttributesW(readme.c_str()) == INVALID_FILE_ATTRIBUTES) {
+        std::ofstream out(readme, std::ios::binary);
+        out << kPostfxReadme;
+    }
+    if (fx_on)
+        sw::mod::log("shader_config: post-processing ready - %d effect file(s) in %ls; Ctrl+F7 switches the effects off and on.",
+                     sw::postfx::add_folder(fx_folder), fx_folder.c_str());
 
     unsigned long long ini_print = 0, shader_print = 0;
-    bool watch = true, first = true, waiting = false;
+    bool watch = true, first = true, waiting = false, fx_keys_off = false;
+    std::string built_key;
+    Config current;
     unsigned long long rebuilds_before = 0;
     int ticks_waiting = 0;
+    std::map<std::string, std::string> reported;   // effect -> the error that was logged ("" = it runs)
     while (sw::mod::sleep(250)) {
         const unsigned long long ip = fingerprint(ini, false);
         const unsigned long long sp = watch ? fingerprint(shaders, true) : shader_print;
-        const bool by_key = key_pressed();
+        const bool by_key = build_on && key_pressed(VK_F8);
+        if (fx_on && key_pressed(VK_F7)) {
+            fx_keys_off = !fx_keys_off;
+            apply_postfx(current, fx_keys_off);
+            sw::mod::log("shader_config: Ctrl+F7 - post-processing %s.", fx_keys_off ? "off" : "on");
+        }
         if (first || ip != ini_print || sp != shader_print || by_key) {
             const bool file_changed = !first && ip != ini_print;
+            const bool shaders_changed = !first && sp != shader_print;
             ini_print = ip;
             shader_print = sp;
-            const Config c = apply(ini);
-            watch = c.watch;
-            for (const auto& p : c.problems) sw::mod::log("shader_config: %ls %s", ini.c_str(), p.c_str());
-            // at the start only rebuild when there is something to change (the game built its shaders already)
-            if (!first || c.macros > 0 || c.version != 0) {
+            current = apply(ini);
+            watch = current.watch;
+            for (const auto& p : current.problems) sw::mod::log("shader_config: %ls %s", ini.c_str(), p.c_str());
+            if (fx_on) apply_postfx(current, fx_keys_off);
+            // rebuild the game's shaders only when what they are built with changed (an edit of [postfx] does not need it);
+            // at the start only when there is something to change (the game built its shaders already)
+            const bool macros_changed = current.macro_key != built_key;
+            if (build_on && (by_key || shaders_changed || (first ? (current.macros > 0 || current.version != 0) : macros_changed))) {
                 rebuilds_before = sw::shader_build::status().rebuilds;
                 sw::shader_build::rebuild();
                 waiting = true;
                 ticks_waiting = 0;
                 sw::mod::log("shader_config: %s - %d macro(s), GLSL %s, rebuilding the shaders.",
                              by_key ? "Ctrl+F8" : first ? "start" : file_changed ? "the ini changed" : "a shader file changed",
-                             c.macros, c.version ? std::to_string(c.version).c_str() : "of the game (330)");
+                             current.macros, current.version ? std::to_string(current.version).c_str() : "of the game (330)");
             }
+            built_key = current.macro_key;
             first = false;
+        }
+        if (fx_on) {
+            if (sw::postfx::sync() > 0) apply_postfx(current, fx_keys_off);   // new files get the switch and their uniforms
+            for (const auto& e : sw::postfx::effects()) {
+                if (!e.compiled && e.error.empty()) continue;   // not built yet (or switched off)
+                auto it = reported.find(e.name);
+                if (it != reported.end() && it->second == e.error) continue;
+                reported[e.name] = e.error;
+                if (e.error.empty()) sw::mod::log("shader_config: effect %s is running.", e.name.c_str());
+                else sw::mod::log("shader_config: effect %s has an ERROR (line numbers are those of its file):\n%s", e.name.c_str(), e.error.c_str());
+            }
         }
         if (waiting) {
             const auto s = sw::shader_build::status();
@@ -210,4 +379,5 @@ void sw_mod_start() {
 void sw_mod_stop() {
     // the shaders keep the macros until they are built again; the game's GL functions go back into their slots
     sw::shader_build::uninstall();
+    sw::postfx::uninstall();   // the effects stop at the next frame end
 }

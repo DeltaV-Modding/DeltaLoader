@@ -14,7 +14,7 @@ add_library(swbridge STATIC
     src/mapicons.cpp src/render.cpp src/network.cpp src/overlay.cpp src/vfs.cpp
     src/audio.cpp src/game_state.cpp src/input.cpp src/weather.cpp
     src/vehicle.cpp src/flags.cpp src/trees.cpp src/discord.cpp src/image_load.cpp
-    src/shader_build.cpp src/clouds.cpp
+    src/shader_build.cpp src/clouds.cpp src/postfx.cpp
 )
 target_include_directories(swbridge PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(swbridge PUBLIC UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
@@ -43,5 +43,5 @@ endif()
 # Add each mod as: sw_add_mod(my_mod path/to/mod.cpp [more_sources.cpp ...])
 sw_add_mod(delta_example src/example_mod.cpp)
 # Ready-made mods with an ini file of their own (see the head of each file)
-sw_add_mod(shader_config src/shader_config_mod.cpp)   # your own #define macros, GLSL 460, shaders rebuilt while the game runs
+sw_add_mod(shader_config src/shader_config_mod.cpp)   # your own #define macros, GLSL 460, shaders rebuilt while the game runs, post-processing effects
 sw_add_mod(cloud_control src/cloud_control_mod.cpp)   # where the clouds appear

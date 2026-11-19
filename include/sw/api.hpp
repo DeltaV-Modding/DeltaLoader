@@ -17,6 +17,7 @@
 #include "sw/vehicle.hpp"
 #include "sw/weather.hpp"
 #include "sw/clouds.hpp"
+#include "sw/postfx.hpp"
 #include "sw/mesh.hpp"
 #include "sw/textures.hpp"
 #include "sw/discord.hpp"
