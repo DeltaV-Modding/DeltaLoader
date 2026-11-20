@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="189" height="28" viewBox="0 0 189 28" role="img" aria-label="Platform: Windows x64">
+<!-- DeltaLoader badge, icon: Tabler Icons (MIT, tabler.io) -->
+<title>Platform: Windows x64</title>
+<clipPath id="dl-platform"><rect width="189" height="28" rx="7"/></clipPath>
+<g clip-path="url(#dl-platform)">
+<rect width="89" height="28" fill="#0b110e"/>
+<rect x="89" width="100" height="28" fill="#8AA0B2"/>
+<rect x="89" width="1" height="28" fill="#000" fill-opacity=".25"/>
+</g>
+<rect x=".5" y=".5" width="188" height="27" rx="6.5" fill="none" stroke="#ffffff" stroke-opacity=".08"/>
+<g transform="translate(8 7) scale(0.5833)"><g fill="none" stroke="#8AA0B2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 20l-12 -1.5c-1 -.1 -1.8 -.9 -1.8 -1.9v-9.2c0 -1 .8 -1.8 1.8 -1.9l12 -1.5c1.2 -.1 2.2 .8 2.2 1.9v12.1c0 1.2 -1.1 2.1 -2.2 1.9z"/><path d="M12 5l0 14"/><path d="M4 12l16 0"/></g></g>
+<g font-family="Verdana,DejaVu Sans,Segoe UI,sans-serif" font-size="11">
+<text x="29" y="18" fill="#c3d3de">Platform</text>
+<text x="139" y="18" fill="#0d1820" font-weight="bold" text-anchor="middle">Windows x64</text>
+</g>
+</svg>

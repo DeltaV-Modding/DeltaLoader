@@ -4,15 +4,15 @@
 
 **Build your own C++ mods for _Stormworks: Build and Rescue_ and run them with the DeltaLoader.**
 
-[![Discord](https://img.shields.io/badge/Discord-join%20us-5865F2?logo=discord&logoColor=white)](https://discord.gg/HH3ezeD8BD)
-[![Website](https://img.shields.io/badge/Website-stormworks--tools.com-3A9BD0?logo=googlechrome&logoColor=white)](https://stormworks-tools.com/)
-[![Docs](https://img.shields.io/badge/Docs-read%20online-2EA44F?logo=readthedocs&logoColor=white)](https://deltav-modding.github.io/DeltaLoader/)
-[![Download launcher](https://img.shields.io/badge/Launcher-download-3A9BD0?logo=windows&logoColor=white)](https://stormworks-tools.com/download)
-
-![Game version](https://img.shields.io/badge/Stormworks-1.15.27-orange)
-![Platform](https://img.shields.io/badge/platform-Windows%20x64-lightgrey?logo=windows)
-![C++](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)
-![License](https://img.shields.io/badge/license-DeltaLoader%20SDK%202.0-blue)
+<a href="https://discord.gg/HH3ezeD8BD"><img src=".github/badges/discord.svg" alt="Discord: join us" height="28"></a>
+<a href="https://stormworks-tools.com/"><img src=".github/badges/website.svg" alt="Website: stormworks-tools.com" height="28"></a>
+<a href="https://deltav-modding.github.io/DeltaLoader/"><img src=".github/badges/docs.svg" alt="Docs: read online" height="28"></a>
+<a href="https://stormworks-tools.com/download"><img src=".github/badges/launcher.svg" alt="Launcher: download" height="28"></a>
+<br>
+<img src=".github/badges/game.svg" alt="Stormworks 1.15.27" height="28">
+<img src=".github/badges/platform.svg" alt="Platform: Windows x64" height="28">
+<img src=".github/badges/sdk.svg" alt="SDK: C++17" height="28">
+<a href="LICENSE"><img src=".github/badges/license.svg" alt="License: DeltaLoader SDK 2.0" height="28"></a>
 
 [Discord](https://discord.gg/HH3ezeD8BD) · [Website](https://stormworks-tools.com/) · [Documentation](https://deltav-modding.github.io/DeltaLoader/) · [Mods](https://stormworks-tools.com/mods) · [Server loader](https://stormworks-tools.com/server)
 
