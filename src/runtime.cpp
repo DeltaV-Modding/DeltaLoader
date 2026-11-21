@@ -1,5 +1,6 @@
 #include "sw/runtime.hpp"
 
+#include "sw/generated_server_map.hpp"
 #include "sw/sha256.hpp"
 #include "sw/signature.hpp"
 
@@ -28,6 +29,12 @@ std::string to_utf8(const std::wstring& text) {
     WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), out.data(), n,
                         nullptr, nullptr);
     return out;
+}
+
+bool is_server_image(const std::wstring& path) {
+    std::wstring name = path.substr(path.find_last_of(L"\\/") + 1);
+    for (auto& c : name) c = static_cast<wchar_t>(towlower(c));
+    return name == L"server64.exe";
 }
 
 std::wstring host_image_path() {
@@ -69,6 +76,9 @@ bool Runtime::attach(bool check_hash, bool check_signatures) {
         return false;
     }
 
+    status_.server = is_server_image(status_.image_path);
+    server_.store(status_.server, std::memory_order_relaxed);
+
     if (check_hash) {
         status_.hash_checked = true;
         std::string digest;
@@ -77,7 +87,7 @@ bool Runtime::attach(bool check_hash, bool check_signatures) {
             set_error("SHA-256 not computable: " + hash_err);
             return false;
         }
-        status_.hash_ok = (digest == map::kSha256);
+        status_.hash_ok = digest == (status_.server ? server_map::kSha256 : map::kSha256);
         if (!status_.hash_ok) {
             set_error("SHA-256 does not match the mapping (running binary: " + digest + ")");
             return false;
@@ -89,16 +99,25 @@ bool Runtime::attach(bool check_hash, bool check_signatures) {
 
     if (check_signatures) {
         status_.signatures_checked = true;
-        status_.signature_total = map::kApi.size();
-        for (const auto& entry : map::kApi) {
-            const auto* p = static_cast<const std::uint8_t*>(at_rva(entry.rva));
-            auto pattern = BytePattern::parse(entry.signature);
-            if (!p || !pattern || !readable(p, pattern->size()) ||
-                !pattern->matches(p, pattern->size())) {
-                set_error("signature does not match: " + std::string(entry.api));
+        // the Lua handlers of the running file: their RVAs are the module's own (no translation)
+        auto check = [&](std::string_view api, std::uint32_t module_rva, std::string_view signature) {
+            const auto* p = reinterpret_cast<const std::uint8_t*>(status_.base + module_rva);
+            auto pattern = BytePattern::parse(signature);
+            if (!pattern || !readable(p, pattern->size()) || !pattern->matches(p, pattern->size())) {
+                set_error("signature does not match: " + std::string(api));
                 return false;
             }
             ++status_.signature_matches;
+            return true;
+        };
+        if (status_.server) {
+            status_.signature_total = server_map::kApi.size();
+            for (const auto& entry : server_map::kApi)
+                if (!check(entry.api, entry.rva, entry.signature)) return false;
+        } else {
+            status_.signature_total = map::kApi.size();
+            for (const auto& entry : map::kApi)
+                if (!check(entry.api, entry.rva, entry.signature)) return false;
         }
         status_.signatures_ok = (status_.signature_matches == status_.signature_total);
         if (!status_.signatures_ok) {
@@ -116,6 +135,7 @@ void Runtime::detach() {
     std::lock_guard<std::mutex> lock(mutex_);
     status_ = RuntimeStatus{};
     module_base_.store(0, std::memory_order_relaxed);
+    server_.store(false, std::memory_order_relaxed);
 }
 
 bool Runtime::attached() const {
@@ -132,10 +152,17 @@ std::uintptr_t Runtime::base() const {
     return module_base_.load(std::memory_order_relaxed);
 }
 
+std::uint32_t Runtime::module_rva(std::uint32_t client_rva) const {
+    if (!server_.load(std::memory_order_relaxed) || client_rva == 0) return client_rva;
+    return server_map::translate(client_rva);
+}
+
 const void* Runtime::at_rva(std::uint32_t rva) const {
     const std::uintptr_t base = module_base_.load(std::memory_order_relaxed);
     if (!base) return nullptr;
-    return reinterpret_cast<const void*>(base + rva);
+    const std::uint32_t r = module_rva(rva);
+    if (rva && !r) return nullptr;
+    return reinterpret_cast<const void*>(base + r);
 }
 
 std::uintptr_t Runtime::resolve(std::string_view api, bool verify) {
@@ -146,15 +173,23 @@ std::uintptr_t Runtime::resolve(std::string_view api, bool verify) {
         return 0;
     }
 
-    const auto* entry = map::find(api);
-    if (!entry) {
+    std::uint32_t rva = 0;
+    std::string_view signature;
+    if (status_.server) {
+        for (const auto& e : server_map::kApi)
+            if (e.api == api) { rva = e.rva; signature = e.signature; break; }
+    } else if (const auto* entry = map::find(api)) {
+        rva = entry->rva;
+        signature = entry->signature;
+    }
+    if (!rva) {
         set_error("API not in the mapping: " + std::string(api));
         return 0;
     }
 
-    const std::uintptr_t address = status_.base + entry->rva;
+    const std::uintptr_t address = status_.base + rva;
     if (verify) {
-        auto pattern = BytePattern::parse(entry->signature);
+        auto pattern = BytePattern::parse(signature);
         const auto* p = reinterpret_cast<const std::uint8_t*>(address);
         if (!pattern || !readable(p, pattern->size()) ||
             !pattern->matches(p, pattern->size())) {
@@ -237,6 +272,9 @@ HookStatus Runtime::hook_ctor(std::string_view cls, HookCallback callback, void*
         error = "not attached";
         return HookStatus::target_invalid;
     }
+    // All constructors of the class - 33 classes have several, and only
+    // hooking all of them sees every object. If one fails, the ones already
+    // set are removed again: all or none.
     std::vector<const void*> done;
     std::size_t found = 0;
     for (const auto& c : map::kClassCtors) {
@@ -278,9 +316,8 @@ std::string_view Runtime::class_of(std::uintptr_t object) const {
     const std::uintptr_t vt = vtable_of(object);
     const std::uintptr_t b = base();
     if (!vt || !b || vt < b) return {};
-    const std::uintptr_t rva = vt - b;
     for (const auto& c : map::kClasses) {
-        if (c.vtable_rva == rva) return c.name;
+        if (reinterpret_cast<std::uintptr_t>(at_rva(c.vtable_rva)) == vt) return c.name;
     }
     return {};
 }
@@ -298,6 +335,8 @@ bool Runtime::is_function_start(std::uintptr_t address) const {
     const RUNTIME_FUNCTION* fn = RtlLookupFunctionEntry(static_cast<DWORD64>(address), &image,
                                                         nullptr);
     if (fn) return image + fn->BeginAddress == address;
+    // Small leaf functions have no own .pdata entry (AGENTS.md 2). Then the
+    // int3 padding directly in front is the sign of a start.
     const auto* p = reinterpret_cast<const std::uint8_t*>(address);
     return readable(p - 1, 2) && p[-1] == 0xCC && p[0] != 0xCC;
 #else
@@ -347,6 +386,19 @@ HookStatus Runtime::hook_rva(std::uint32_t rva, HookCallback callback, void* use
     return Hook::install(reinterpret_cast<void*>(address), callback, user, error);
 }
 
+HookStatus Runtime::hook_at(std::uintptr_t address, HookCallback callback, void* user, std::string& error) {
+    error.clear();
+    if (!status_.attached) {
+        error = "not attached";
+        return HookStatus::target_invalid;
+    }
+    if (!address || !is_function_start(address)) {
+        error = "address is not a function start";
+        return HookStatus::target_invalid;
+    }
+    return Hook::install(reinterpret_cast<void*>(address), callback, user, error);
+}
+
 HookStatus Runtime::hook_method(std::string_view cls, std::uint32_t slot, HookCallback callback,
                                 void* user, std::string& error) {
     error.clear();
@@ -391,6 +443,8 @@ bool Runtime::remove_ctor(std::string_view cls, HookCallback callback, void* use
         std::string why;
         const HookStatus st =
             Hook::remove_callback(const_cast<void*>(address), callback, user, why);
+        // Duplicate entries in the mapping: the second one finds nothing
+        // any more.
         if (st != HookStatus::ok && st != HookStatus::target_invalid) {
             ok = false;
             error = why;
